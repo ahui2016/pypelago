@@ -1,2 +1,3 @@
 # pypelago
-A pure CLI personal microblog (纯命令行个人微博客)
+
+CLI personal microblog (命令行个人微博客)

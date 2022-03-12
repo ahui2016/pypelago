@@ -1,0 +1,26 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "pypelago"
+authors = [{name = "ahui", email = "102419@gmail.com"}]
+readme = "README.md"
+license = {file = "LICENSE"}
+classifiers = ["License :: OSI Approved :: MIT License"]
+dependencies = [
+  "arrow",
+  "click",
+  "appdirs",
+  "pyperclip",
+  "requests",
+  "humanfriendly",
+]
+requires-python = ">=3.10"
+dynamic = ["version", "description"]
+
+[project.urls]
+Home = "https://github.com/ahui2016/pypelago"
+
+[project.scripts]
+ago = "pypelago.main:cli"
