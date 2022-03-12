@@ -16,6 +16,7 @@ db_path = app_config_dir.joinpath(db_filename)
 
 NoResultError = "database-no-result"
 
+
 def connect_db() -> sqlite3.Connection:
     return sqlite3.connect(db_path)
 
@@ -37,7 +38,7 @@ def init_cfg(conn: sqlite3.Connection) -> None:
     if cfg.err():
         default_cfg = default_config()
         conn.execute(
-            Insert_metadata, {"name": app_config_name, "value": json.dumps(default_cfg)}
+            Insert_metadata, (app_config_name,json.dumps(default_cfg))
         )
 
 
@@ -57,7 +58,7 @@ def init_current_list(conn: sqlite3.Connection) -> None:
     cl = get_current_list(conn)
     if cl.err():
         conn.execute(
-            Insert_metadata, {"name": current_list_name, "value": json.dumps([])}
+            Insert_metadata, (current_list_name, json.dumps([]))
         )
 
 
@@ -81,14 +82,15 @@ def get_current_n(n: int, conn: sqlite3.Connection) -> Result[str, str]:
 
 
 def get_proxies(cfg: AppConfig) -> dict | None:
-    if cfg.use_proxy and cfg.http_proxy:
+    if cfg["use_proxy"] and cfg["http_proxy"]:
         return dict(
-            http=cfg.http_proxy,
-            https=cfg.http_proxy,
+            http=cfg["http_proxy"],
+            https=cfg["http_proxy"],
         )
 
-def set_pwd(pwd:str) -> None:
+
+def set_pwd(pwd: str) -> None:
     with connect_db() as conn:
         cfg = get_cfg(conn).unwrap()
-        cfg.password = pwd
+        cfg["password"] = pwd
         update_cfg(cfg, conn)

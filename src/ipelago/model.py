@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
+from typing import TypedDict
 
 
 Hour = 60 * 60
@@ -31,13 +32,11 @@ class Feed:
     title: str
     author_name: str
     updated: str  # RFC3339
-    entries: list[FeedEntry] = []
     notes: str = ""  # (不用于 xml)
-    bucket: Bucket = Bucket.Public  # (不用于 xml)
+    bucket: str = Bucket.Public.name  # (不用于 xml)
 
 
-@dataclass
-class AppConfig:
+class AppConfig(TypedDict):
     tl_cursor: str  # RFC3339(UTC)
     news_cursor: str  # RFC3339(UTC)
     zen_mode: bool  # 专注模式
@@ -46,7 +45,7 @@ class AppConfig:
     http_proxy: str
     use_proxy: bool
     password: str  # 与 session_max_age 一起形成简单的密码保护，安全性不高
-    session_started_at: int # timestamp
+    session_started_at: int  # timestamp
     session_max_age: int  # 单位：秒，设置时转换单位：小时。
 
 

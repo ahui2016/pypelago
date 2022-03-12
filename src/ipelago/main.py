@@ -1,6 +1,6 @@
 import click
 from result import Result
-from ipelago.db import connect_db, get_cfg, db_path
+from ipelago.db import connect_db, get_cfg, db_path, init_tables
 from ipelago.model import Day
 from . import (
     __version__,
@@ -9,9 +9,10 @@ from . import (
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
-def check(ctx: click.Context, r: Result, force_exit:bool) -> None:
+
+def check(ctx: click.Context, r: Result, force_exit: bool) -> None:
     """检查 r, 有错误则打印并终止程序，无错误则什么都不用做。
-       如果 force_exit is True, 则即使没有错误也终止程序。
+    如果 force_exit is True, 则即使没有错误也终止程序。
     """
     errMsg = r.err()
     if errMsg:
@@ -30,12 +31,12 @@ def show_info(ctx: click.Context, _, value):
 
     with connect_db() as conn:
         cfg = get_cfg(conn).unwrap()
-        click.echo(f"[Zen Mode Always ON] {cfg.zen_mode}")
-        click.echo(f"[http_proxy] {cfg.http_proxy}")
-        click.echo(f"[use_proxy] {cfg.use_proxy}")
-        click.echo(f"[session-max-age] {cfg.session_max_age//Day} days")
+        click.echo(f"[Zen Mode Always ON] {cfg['zen_mode']}")
+        click.echo(f"[http_proxy] {cfg['http_proxy']}")
+        click.echo(f"[use_proxy] {cfg['use_proxy']}")
+        click.echo(f'[session-max-age] {cfg["session_max_age"] // Day} days')
 
-    click.echo(f"[repo] https://github.com/ahui2016/pypelago")
+    click.echo("[repo] https://github.com/ahui2016/pypelago")
     ctx.exit()
 
 
@@ -61,8 +62,20 @@ def show_info(ctx: click.Context, _, value):
 def cli(ctx: click.Context):
     """ipelago: CLI personal microblog (命令行个人微博客)
 
-    https://pypi.org/project/ipelago/
+    https://pypi.org/project/pypelago/
     """
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
         ctx.exit()
+
+
+# 以上是主命令
+############
+# 以下是子命令
+
+
+# 初始化
+init_tables()
+
+if __name__ == "__main__":
+    cli(obj={})
