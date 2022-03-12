@@ -46,6 +46,7 @@ class AppConfig:
     http_proxy: str
     use_proxy: bool
     password: str  # 与 session_max_age 一起形成简单的密码保护，安全性不高
+    session_started_at: int # timestamp
     session_max_age: int  # 单位：秒，设置时转换单位：小时。
 
 
@@ -59,6 +60,7 @@ def default_config() -> AppConfig:
         http_proxy="",
         use_proxy=True,
         password="",
+        session_started_at=0,
         session_max_age=Day,
     )
 
