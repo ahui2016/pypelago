@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import TypedDict
+import arrow
+
+from result import Err, Ok, Result
 
 
 Hour = 60 * 60
@@ -8,6 +11,12 @@ Day = 24 * Hour
 
 PublicBucketID = "Public"
 PrivateBucketID = "Private"
+
+KB = 1024
+OneMsgSizeLimit = KB  # 一条消息的体积上限
+FeedSizeLimitBase = 20 * KB  # RSS feed 体积上限基数
+FeedSizeLimitMargin = 10 * KB  # 体积上限允许超出一点 (比如 XML tag, 日期等的体积)
+FeedSizeLimit = FeedSizeLimitBase + FeedSizeLimitMargin
 
 
 class Bucket(Enum):
@@ -26,7 +35,26 @@ class FeedEntry:
     published: str  # RFC3339(UTC)
     feed_id: str  # (不用于 xml)
     feed_name: str  # (不用于 xml)
-    bucket: str = Bucket.Public.name  # (不用于 xml)
+    bucket: str  # Bucket.name  # (不用于 xml)
+
+
+def new_my_msg(entry_id: str, content: str, bucket: Bucket) -> Result[FeedEntry, str]:
+    size = byte_len(content)
+    if size > OneMsgSizeLimit:
+        return Err(f"size {size} > limit({OneMsgSizeLimit})")
+
+    feed_id = PublicBucketID if bucket is Bucket.Public else PrivateBucketID
+    entry = FeedEntry(
+        entry_id=entry_id,
+        title="",
+        content=content,
+        link="",
+        published=arrow.now().format(arrow.FORMAT_RFC3339),
+        feed_id=feed_id,
+        feed_name="",
+        bucket=bucket.name,
+    )
+    return Ok(entry)
 
 
 @dataclass
@@ -64,3 +92,25 @@ def default_config() -> AppConfig:
 CurrentList = list[str]  # list[entry_id]
 
 SubsList = list[Feed]
+
+
+def byte_len(s: str) -> int:
+    return len(s.encode("utf8"))
+
+
+def utf8_lead_byte(b):
+    """A UTF-8 intermediate byte starts with the bits 10xxxxxx."""
+    return (b & 0xC0) != 0x80
+
+
+# https://stackoverflow.com/questions/13727977/truncating-string-to-byte-length-in-python
+def utf8_byte_truncate(text: str, max_bytes: int) -> str:
+    """If text[max_bytes] is not a lead byte, back up until a lead byte is
+    found and truncate before that character."""
+    utf8 = text.encode("utf8")
+    if len(utf8) <= max_bytes:
+        return utf8.decode("utf8")
+    i = max_bytes
+    while i > 0 and not utf8_lead_byte(utf8[i]):
+        i -= 1
+    return utf8[:i].decode("utf8") + " ..."

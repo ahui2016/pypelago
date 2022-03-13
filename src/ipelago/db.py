@@ -11,12 +11,14 @@ from ipelago.model import (
     PublicBucketID,
     default_config,
 )
+from ipelago.shortid import first_id, parse_id
 import ipelago.stmt as stmt
 
 db_filename = "pypelago.db"
 app_config_name = "app-config"
 current_list_name = "current-list"
 subs_list_name = "subscriptions"
+current_id_name = "current-id"
 
 app_dirs = AppDirs("pypelago", "github-ahui2016")
 app_config_dir = Path(app_dirs.user_config_dir)
@@ -48,6 +50,30 @@ def init_cfg(conn: sqlite3.Connection) -> None:
     if cfg.err():
         default_cfg = default_config()
         conn.execute(stmt.Insert_metadata, (app_config_name, json.dumps(default_cfg)))
+
+
+def get_current_id(conn: sqlite3.Connection) -> Result[str, str]:
+    row = conn.execute(stmt.Get_metadata, (current_id_name,)).fetchone()
+    if row is None:
+        return Err(NoResultError)
+    return Ok(row[0])
+
+
+def update_current_id(cid: str, conn: sqlite3.Connection) -> None:
+    conn.execute(stmt.Update_metadata, {"value": cid, "name": current_id_name})
+
+
+def get_next_id(conn: sqlite3.Connection) -> str:
+    cid = get_current_id(conn).unwrap()
+    nid = parse_id(cid).next_id()
+    update_current_id(nid, conn)
+    return nid
+
+
+def init_current_id(conn: sqlite3.Connection) -> None:
+    cid = get_current_id(conn)
+    if cid.err():
+        conn.execute(stmt.Insert_metadata, (current_id_name, first_id()))
 
 
 def get_current_list(conn: sqlite3.Connection) -> Result[CurrentList, str]:
@@ -112,6 +138,7 @@ def init_app(name: str) -> Result[str, str]:
         conn.executescript(stmt.Create_tables)
         init_cfg(conn)
         init_current_list(conn)
+        init_current_id(conn)
         init_my_feeds(name, conn)
     return Ok("OK")
 

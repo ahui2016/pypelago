@@ -27,6 +27,7 @@ def check(ctx: click.Context, r: Result[Any, str], force_exit: bool) -> None:
     if force_exit:
         ctx.exit()
 
+
 def check_init(ctx: click.Context) -> None:
     if not db_path.exists():
         click.echo("请先使用 'ago init' 命令进行初始化")
