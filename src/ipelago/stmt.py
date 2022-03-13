@@ -53,3 +53,19 @@ INSERT INTO feed (
     id, link, title, author_name, updated, notes
 ) VALUES (:id, :link, :title, '', '', '');
 """
+
+Insert_entry = """
+INSERT INTO entry (
+    id, title, content, link, published, feed_id, feed_name, bucket
+) VALUES (
+    :id, :title, :content, :link, :published, :feed_id, :feed_name, :bucket
+)
+"""
+
+Insert_my_entry = """
+INSERT INTO entry (
+    id, title, content, link, published, feed_id, feed_name, bucket
+) VALUES (
+    :id, '', :content, '', :published, :feed_id, '', :bucket
+)
+"""

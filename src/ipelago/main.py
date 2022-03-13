@@ -1,13 +1,16 @@
 from typing import Any, cast
 import click
-from result import Result
+import pyperclip
+from result import Err, Ok, Result
 from ipelago.db import (
     connect_db,
     get_cfg,
     db_path,
     init_app,
+    post_msg,
     update_cfg,
 )
+from ipelago.model import my_bucket
 from . import (
     __version__,
     __package_name__,
@@ -176,7 +179,16 @@ def post(ctx: click.Context, msg: Any, filename: str, pri: bool):
     Example 3: ago post -f ./file.txt (发送文件内容)
     """
     check_init(ctx)
-    pass
+    if msg:
+        msg = " ".join(msg).strip()
+    else:
+        try:
+            msg = pyperclip.paste()
+        except Exception:
+            pass
+    
+    click.echo(post_msg(msg, my_bucket(pri)))
+    ctx.exit()
 
 
 if __name__ == "__main__":

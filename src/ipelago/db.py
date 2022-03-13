@@ -5,11 +5,13 @@ from result import Ok, Err, Result
 from appdirs import AppDirs
 from ipelago.model import (
     AppConfig,
+    Bucket,
     CurrentList,
     Feed,
     PrivateBucketID,
     PublicBucketID,
     default_config,
+    new_my_msg,
 )
 from ipelago.shortid import first_id, parse_id
 import ipelago.stmt as stmt
@@ -158,3 +160,26 @@ def get_proxies(cfg: AppConfig) -> dict | None:
             http=cfg["http_proxy"],
             https=cfg["http_proxy"],
         )
+
+
+def post_msg(msg: str, bucket: Bucket) -> str:
+    resp = "OK. 已发送至公开岛。"
+    if bucket is Bucket.Private:
+        resp = "OK. 已发送至隐藏岛。"
+
+    with connect_db() as conn:
+        match new_my_msg(get_next_id(conn), msg, bucket):
+            case Err(e):
+                resp = e
+            case Ok(entry):
+                conn.execute(
+                    stmt.Insert_my_entry,
+                    {
+                        "id": entry.entry_id,
+                        "content": entry.content,
+                        "published": entry.published,
+                        "feed_id": entry.feed_id,
+                        "bucket": entry.bucket,
+                    },
+                )
+    return resp

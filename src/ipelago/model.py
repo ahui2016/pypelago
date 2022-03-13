@@ -25,6 +25,8 @@ class Bucket(Enum):
     News = auto()
     Fav = auto()
 
+def my_bucket(pri:bool) -> Bucket:
+    return Bucket.Private if pri else Bucket.Public
 
 @dataclass
 class FeedEntry:
