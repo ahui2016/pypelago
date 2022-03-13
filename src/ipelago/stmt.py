@@ -51,5 +51,5 @@ INSERT INTO feed (
 Insert_my_feed = """
 INSERT INTO feed (
     id, link, title, author_name, updated, notes
-) VALUES (:id, '', '', '', '', '');
+) VALUES (:id, :link, :title, '', '', '');
 """

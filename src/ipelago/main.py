@@ -5,9 +5,8 @@ from ipelago.db import (
     connect_db,
     get_cfg,
     db_path,
-    init_tables,
+    init_app,
     update_cfg,
-    get_current_list,
 )
 from . import (
     __version__,
@@ -17,7 +16,7 @@ from . import (
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
-def check(ctx: click.Context, r: Result, force_exit: bool) -> None:
+def check(ctx: click.Context, r: Result[Any, str], force_exit: bool) -> None:
     """检查 r, 有错误则打印并终止程序，无错误则什么都不用做。
     如果 force_exit is True, 则即使没有错误也终止程序。
     """
@@ -28,10 +27,17 @@ def check(ctx: click.Context, r: Result, force_exit: bool) -> None:
     if force_exit:
         ctx.exit()
 
+def check_init(ctx: click.Context) -> None:
+    if not db_path.exists():
+        click.echo("请先使用 'ago init' 命令进行初始化")
+        ctx.exit()
+
 
 def show_info(ctx: click.Context, _, value):
     if not value or ctx.resilient_parsing:
         return
+    check_init(ctx)
+
     click.echo(f"[ago] {__file__}")
     click.echo(f"[version] {__version__}")
     click.echo(f"[database] {db_path}")
@@ -49,6 +55,8 @@ def show_info(ctx: click.Context, _, value):
 def set_proxy(ctx, _, value):
     if not value or ctx.resilient_parsing:
         return
+    check_init(ctx)
+
     with connect_db() as conn:
         cfg = get_cfg(conn).unwrap()
         value = cast(str, value).lower()
@@ -69,6 +77,8 @@ def set_proxy(ctx, _, value):
 def toggle_zen(ctx: click.Context, _, value):
     if not value or ctx.resilient_parsing:
         return
+    check_init(ctx)
+
     with connect_db() as conn:
         cfg = get_cfg(conn).unwrap()
         cfg["zen_mode"] = not cfg["zen_mode"]
@@ -91,7 +101,7 @@ def toggle_zen(ctx: click.Context, _, value):
     "-i",
     "--info",
     is_flag=True,
-    help="Show informations about ipelago-cli.",
+    help="Show informations about config and more.",
     expose_value=False,
     callback=show_info,
 )
@@ -109,13 +119,17 @@ def toggle_zen(ctx: click.Context, _, value):
     expose_value=False,
     callback=toggle_zen,
 )
+@click.option("name", "-init", "--init", help="Same as 'ago init'")
 @click.pass_context
-def cli(ctx: click.Context):
+def cli(ctx: click.Context, name: str):
     """ipelago: CLI personal microblog (命令行个人微博客)
 
     https://pypi.org/project/pypelago/
     """
     if ctx.invoked_subcommand is None:
+        if name:
+            check(ctx, init_app(name), True)
+
         click.echo(ctx.get_help())
         ctx.exit()
 
@@ -123,6 +137,19 @@ def cli(ctx: click.Context):
 # 以上是主命令
 ############
 # 以下是子命令
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS, name="init")
+@click.argument("name", nargs=1, required=True)
+@click.pass_context
+def init_command(ctx: click.Context, name: str):
+    """Set the name of your microblog and initialize it.
+
+    设置你的微博客名称并初始化数据库。
+
+    Example: ago init "Emily's Microblog"
+    """
+    check(ctx, init_app(name), True)
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
@@ -147,10 +174,9 @@ def post(ctx: click.Context, msg: Any, filename: str, pri: bool):
 
     Example 3: ago post -f ./file.txt (发送文件内容)
     """
+    check_init(ctx)
+    pass
 
-
-# 初始化
-init_tables()
 
 if __name__ == "__main__":
     cli(obj={})

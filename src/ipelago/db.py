@@ -13,12 +13,12 @@ from ipelago.model import (
 )
 import ipelago.stmt as stmt
 
-db_filename = "pypelago.sqlite"
+db_filename = "pypelago.db"
 app_config_name = "app-config"
 current_list_name = "current-list"
 subs_list_name = "subscriptions"
 
-app_dirs = AppDirs("ipelago-cli", "github-ahui2016")
+app_dirs = AppDirs("pypelago", "github-ahui2016")
 app_config_dir = Path(app_dirs.user_config_dir)
 db_path = app_config_dir.joinpath(db_filename)
 
@@ -85,24 +85,35 @@ def get_feed_by_id(feed_id: str, conn: sqlite3.Connection) -> Result[Feed, str]:
     return Ok(feed)
 
 
-def init_my_feeds(conn: sqlite3.Connection) -> None:
+def init_my_feeds(title: str, conn: sqlite3.Connection) -> None:
     my_pub = get_feed_by_id(PublicBucketID, conn)
     if my_pub.err():
-        conn.execute(stmt.Insert_my_feed, {"id": PublicBucketID})
+        conn.execute(
+            stmt.Insert_my_feed, {"id": PublicBucketID, "link": "", "title": title}
+        )
     my_pri = get_feed_by_id(PrivateBucketID, conn)
     if my_pri.err():
-        conn.execute(stmt.Insert_my_feed, {"id": PrivateBucketID})
+        conn.execute(
+            stmt.Insert_my_feed,
+            {
+                "id": PrivateBucketID,
+                "link": "http://exmaple.com",
+                "title": "My Private Channel",
+            },
+        )
 
 
-def init_tables() -> None:
-    """Initialize tables and the app-config"""
+def init_app(name: str) -> Result[str, str]:
+    """在正式使用前必须先使用该函数进行初始化。"""
     app_config_dir.mkdir(parents=True, exist_ok=True)
-    if not db_path.exists():
-        with connect_db() as conn:
-            conn.executescript(stmt.Create_tables)
-            init_cfg(conn)
-            init_current_list(conn)
-            init_my_feeds(conn)
+    if db_path.exists():
+        return Err("不可重复初始化")
+    with connect_db() as conn:
+        conn.executescript(stmt.Create_tables)
+        init_cfg(conn)
+        init_current_list(conn)
+        init_my_feeds(name, conn)
+    return Ok("OK")
 
 
 def get_current_n(n: int, conn: sqlite3.Connection) -> Result[str, str]:
