@@ -6,6 +6,9 @@ from typing import TypedDict
 Hour = 60 * 60
 Day = 24 * Hour
 
+PublicBucketID = "Public"
+PrivateBucketID = "Private"
+
 
 class Bucket(Enum):
     Public = auto()
@@ -17,23 +20,23 @@ class Bucket(Enum):
 @dataclass
 class FeedEntry:
     entry_id: str  # ShortID
-    title: str
-    content: str
-    link: str
+    title: str  # size limit: 256 bytes
+    content: str  # size limit: 1024 bytes
+    link: str  # # size limit: 256 bytes
     published: str  # RFC3339(UTC)
-    updated: str  # RFC3339(UTC)
     feed_id: str  # (不用于 xml)
+    feed_name: str  # (不用于 xml)
+    bucket: str = Bucket.Public.name  # (不用于 xml)
 
 
 @dataclass
 class Feed:
-    feed_id: str  # RandomID 或订阅地址
-    link: str  # link to the feed itself
-    title: str
-    author_name: str
+    feed_id: str  # Publice/Private/RandomID
+    link: str  # link to the feed itself (订阅地址)
+    title: str  # size limit: 256 bytes
+    author_name: str  # size limit: 256 bytes
     updated: str  # RFC3339
     notes: str = ""  # (不用于 xml)
-    bucket: str = Bucket.Public.name  # (不用于 xml)
 
 
 class AppConfig(TypedDict):
@@ -44,9 +47,6 @@ class AppConfig(TypedDict):
     web_page_n: int  # 网页每页列表条数默认上限
     http_proxy: str
     use_proxy: bool
-    password: str  # 与 session_max_age 一起形成简单的密码保护，安全性不高
-    session_started_at: int  # timestamp
-    session_max_age: int  # 单位：秒，设置时转换单位：小时。
 
 
 def default_config() -> AppConfig:
@@ -58,10 +58,9 @@ def default_config() -> AppConfig:
         web_page_n=50,
         http_proxy="",
         use_proxy=True,
-        password="",
-        session_started_at=0,
-        session_max_age=Day,
     )
 
 
-CurrentList = list[str]  # list[ShortID]
+CurrentList = list[str]  # list[entry_id]
+
+SubsList = list[Feed]
