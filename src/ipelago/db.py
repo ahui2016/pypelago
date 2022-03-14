@@ -33,7 +33,9 @@ NoResultError = "database-no-result"
 
 
 def connect_db() -> sqlite3.Connection:
-    return sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 def get_cfg(conn: sqlite3.Connection) -> Result[AppConfig, str]:
@@ -182,8 +184,8 @@ def post_msg(msg: str, bucket: Bucket) -> str:
 
 def get_my_next(cursor: str, conn: sqlite3.Connection) -> Result[FeedEntry, str]:
     row = conn.execute(stmt.Get_my_next_entry, {"published": cursor}).fetchone()
-    if row is None and cursor != "":
-        row = conn.execute(stmt.Get_my_next_entry, {"published": ""}).fetchone()
+    if row is None:
+        row = conn.execute(stmt.Get_my_first_entry).fetchone()
     if row is None:
         return Err(NoResultError)
     return Ok(new_entry_from(row))

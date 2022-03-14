@@ -71,12 +71,12 @@ INSERT INTO entry (
 """
 
 Get_my_first_entry = """
-SELECT * FROM entry WHERE bucket=:bucket1 or bucket=:bucket2
+SELECT * FROM entry WHERE bucket='Public' or bucket='Private'
 ORDER BY published DESC LIMIT 1;
 """
 
 Get_my_next_entry = """
 SELECT * FROM entry
-WHERE (bucket='Public' or bucket='Private') and published > :published
+WHERE (bucket='Public' or bucket='Private') and published < :published
 ORDER BY published DESC LIMIT 1;
 """

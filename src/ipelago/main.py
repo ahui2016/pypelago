@@ -255,7 +255,8 @@ def tl(
             click.clear()
 
         print_my_next_msg(conn)
-        ctx.exit()
+    
+    ctx.exit()
 
 
 if __name__ == "__main__":
