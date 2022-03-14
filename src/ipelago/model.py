@@ -25,8 +25,10 @@ class Bucket(Enum):
     News = auto()
     Fav = auto()
 
-def my_bucket(pri:bool) -> Bucket:
+
+def my_bucket(pri: bool) -> Bucket:
     return Bucket.Private if pri else Bucket.Public
+
 
 @dataclass
 class FeedEntry:
@@ -59,6 +61,19 @@ def new_my_msg(entry_id: str, content: str, bucket: Bucket) -> Result[FeedEntry,
     return Ok(entry)
 
 
+def new_entry_from(row: dict) -> FeedEntry:
+    return FeedEntry(
+        entry_id=row["id"],
+        title=row["title"],
+        content=row["content"],
+        link=row["link"],
+        published=row["published"],
+        feed_id=row["feed_id"],
+        feed_name=row["feed_name"],
+        bucket=row["bucket"],
+    )
+
+
 @dataclass
 class Feed:
     feed_id: str  # Publice/Private/RandomID
@@ -67,6 +82,17 @@ class Feed:
     author_name: str  # size limit: 256 bytes
     updated: str  # RFC3339
     notes: str = ""  # (不用于 xml)
+
+
+def new_feed_from(row: dict) -> Feed:
+    return Feed(
+        feed_id=row["id"],
+        link=row["row"],
+        title=row["title"],
+        author_name=row["author_name"],
+        updated=row["updated"],
+        notes=row["notes"],
+    )
 
 
 class AppConfig(TypedDict):

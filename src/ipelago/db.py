@@ -8,9 +8,12 @@ from ipelago.model import (
     Bucket,
     CurrentList,
     Feed,
+    FeedEntry,
     PrivateBucketID,
     PublicBucketID,
     default_config,
+    new_entry_from,
+    new_feed_from,
     new_my_msg,
 )
 from ipelago.shortid import first_id, parse_id
@@ -102,15 +105,7 @@ def get_feed_by_id(feed_id: str, conn: sqlite3.Connection) -> Result[Feed, str]:
     row = conn.execute(stmt.Get_feed_by_id, (feed_id,)).fetchone()
     if row is None:
         return Err(NoResultError)
-    feed = Feed(
-        feed_id=row["id"],
-        link=row["link"],
-        title=row["title"],
-        author_name=row["author_name"],
-        updated=row["updated"],
-        notes=row["notes"],
-    )
-    return Ok(feed)
+    return Ok(new_feed_from(row))
 
 
 def init_my_feeds(title: str, conn: sqlite3.Connection) -> None:
@@ -183,3 +178,12 @@ def post_msg(msg: str, bucket: Bucket) -> str:
                     },
                 )
     return resp
+
+
+def get_my_next(cursor: str, conn: sqlite3.Connection) -> Result[FeedEntry, str]:
+    row = conn.execute(stmt.Get_my_next_entry, {"published": cursor}).fetchone()
+    if row is None and cursor != "":
+        row = conn.execute(stmt.Get_my_next_entry, {"published": ""}).fetchone()
+    if row is None:
+        return Err(NoResultError)
+    return Ok(new_entry_from(row))

@@ -10,7 +10,8 @@ from ipelago.db import (
     post_msg,
     update_cfg,
 )
-from ipelago.model import my_bucket
+from ipelago.model import Bucket, my_bucket
+from ipelago.util import print_my_next_msg
 from . import (
     __version__,
     __package_name__,
@@ -186,9 +187,75 @@ def post(ctx: click.Context, msg: Any, filename: str, pri: bool):
             msg = pyperclip.paste()
         except Exception:
             pass
-    
+
     click.echo(post_msg(msg, my_bucket(pri)))
     ctx.exit()
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS)
+@click.option(
+    "first", "-first", "--first", is_flag=True, help="Read my latest message."
+)
+@click.option("next", "-next", "--next", is_flag=True, help="Read my next message.")
+@click.option("today", "-today", "--today", is_flag=True, help="Read today's messages.")
+@click.option(
+    "yesterday",
+    "-yday",
+    "--yesterday",
+    is_flag=True,
+    help="Read yesterday's messages.",
+)
+@click.option(
+    "pub", "-pub", "--public", is_flag=True, help="Read my public messages only."
+)
+@click.option(
+    "pri", "-pri", "--private", is_flag=True, help="Read my private messages only."
+)
+@click.option(
+    "limit", "-limit", "--limit", type=int, help="Limit the number of messages."
+)
+@click.option("zen", "-zen", "--zen-mode", is_flag=True, help="Zen mode. (专注模式)")
+@click.pass_context
+def tl(
+    ctx: click.Context,
+    next: bool,
+    first: bool,
+    today: bool,
+    yesterday: bool,
+    pub: bool,
+    pri: bool,
+    limit: int,
+    zen: bool,
+):
+    """Timeline: Read my messages. (阅读自己发布的消息)
+
+    Example 1: ago tl        (阅读下一条消息)
+
+    Example 2: ago tl -first (阅读最新一条消息)
+
+    Example 3: ago tl -today (阅读今天的消息，默认上限 9 条)
+
+    Example 3: ago tl -today -limit 30 (设定上限为 30 条消息)
+    """
+    with connect_db() as conn:
+        cfg = get_cfg(conn).unwrap()
+
+        if not limit:
+            limit = cfg["cli_page_n"]
+
+        buckets = [Bucket.Public, Bucket.Private]
+        if pub:
+            buckets = [Bucket.Public]
+        if pri:
+            buckets = [Bucket.Private]
+
+        # 专注模式
+        if cfg["zen_mode"] or zen:
+            print()
+            click.clear()
+
+        print_my_next_msg(conn)
+        ctx.exit()
 
 
 if __name__ == "__main__":
