@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import sqlite3
+from typing import Final
 from result import Ok, Err, Result
 from appdirs import AppDirs
 from ipelago.model import (
@@ -19,11 +20,11 @@ from ipelago.model import (
 from ipelago.shortid import first_id, parse_id
 import ipelago.stmt as stmt
 
-db_filename = "pypelago.db"
-app_config_name = "app-config"
-current_list_name = "current-list"
-subs_list_name = "subscriptions"
-current_id_name = "current-id"
+db_filename: Final[str] = "pypelago.db"
+app_config_name: Final[str] = "app-config"
+current_list_name: Final[str] = "current-list"
+subs_list_name: Final[str] = "subscriptions"
+current_id_name: Final[str] = "current-id"
 
 app_dirs = AppDirs("pypelago", "github-ahui2016")
 app_config_dir = Path(app_dirs.user_config_dir)
@@ -189,3 +190,29 @@ def get_my_next(cursor: str, conn: sqlite3.Connection) -> Result[FeedEntry, str]
     if row is None:
         return Err(NoResultError)
     return Ok(new_entry_from(row))
+
+
+def get_by_date(
+    date: str,
+    limit: int,
+    bucket: str,
+    conn: sqlite3.Connection,
+) -> list[FeedEntry]:
+    rows = conn.execute(
+        stmt.Get_by_date, {"bucket": bucket, "published": date + "%", "limit": limit}
+    ).fetchall()
+    return [new_entry_from(row) for row in rows]
+
+
+def get_by_date_buckets(
+    date: str,
+    limit: int,
+    buckets: list[str],
+    conn: sqlite3.Connection,
+) -> list[FeedEntry]:
+    result: list[FeedEntry] = []
+    for bucket in buckets:
+        entries = get_by_date(date, limit, bucket, conn)
+        result += entries
+    result.sort(key=lambda x: x.published, reverse=True)
+    return result

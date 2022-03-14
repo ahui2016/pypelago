@@ -11,7 +11,7 @@ from ipelago.db import (
     update_cfg,
 )
 from ipelago.model import Bucket, my_bucket
-from ipelago.util import print_my_next_msg
+from ipelago.util import print_my_next_msg, print_my_today, print_my_yesterday
 from . import (
     __version__,
     __package_name__,
@@ -243,19 +243,27 @@ def tl(
         if not limit:
             limit = cfg["cli_page_n"]
 
-        buckets = [Bucket.Public, Bucket.Private]
+        buckets = [Bucket.Public.name, Bucket.Private.name]
         if pub:
-            buckets = [Bucket.Public]
+            buckets = [Bucket.Public.name]
         if pri:
-            buckets = [Bucket.Private]
+            buckets = [Bucket.Private.name]
 
         # 专注模式
         if cfg["zen_mode"] or zen:
             print()
             click.clear()
 
-        print_my_next_msg(conn)
-    
+        if today:
+            print_my_today(limit, buckets, conn)
+        elif yesterday:
+            print_my_yesterday(limit, buckets, conn)
+        elif first:
+            cfg["tl_cursor"] = ""
+            update_cfg(cfg, conn)
+        else:
+            print_my_next_msg(conn)
+
     ctx.exit()
 
 

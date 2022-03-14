@@ -1,22 +1,23 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import TypedDict
+from typing import Final, TypedDict
 import arrow
 
 from result import Err, Ok, Result
 
 
-Hour = 60 * 60
-Day = 24 * Hour
+Hour: Final[int] = 60 * 60
+Day: Final[int] = 24 * Hour
+RFC3339: Final[str] = "YYYY-MM-DDTHH:mm:ssZZ"
 
-PublicBucketID = "Public"
-PrivateBucketID = "Private"
+PublicBucketID: Final[str] = "Public"
+PrivateBucketID: Final[str] = "Private"
 
-KB = 1024
-OneMsgSizeLimit = KB  # 一条消息的体积上限
-FeedSizeLimitBase = 20 * KB  # RSS feed 体积上限基数
-FeedSizeLimitMargin = 10 * KB  # 体积上限允许超出一点 (比如 XML tag, 日期等的体积)
-FeedSizeLimit = FeedSizeLimitBase + FeedSizeLimitMargin
+KB: Final[int] = 1024
+OneMsgSizeLimit: Final[int] = KB  # 一条消息的体积上限
+FeedSizeLimitBase: Final[int] = 20 * KB  # RSS feed 体积上限基数
+FeedSizeLimitMargin: Final[int] = 10 * KB  # 体积上限允许超出一点 (比如 XML tag, 日期等的体积)
+FeedSizeLimit: Final[int] = FeedSizeLimitBase + FeedSizeLimitMargin
 
 
 class Bucket(Enum):
