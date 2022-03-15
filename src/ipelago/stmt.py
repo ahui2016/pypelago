@@ -81,6 +81,12 @@ WHERE (bucket='Public' or bucket='Private') and published < :published
 ORDER BY published DESC LIMIT 1;
 """
 
+Get_public_limit = """
+SELECT * FROM entry
+WHERE bucket='Public' and published > :published
+ORDER BY published LIMIT :limit;
+"""
+
 Get_by_date = """
 SELECT * FROM entry
 WHERE bucket=:bucket and published LIKE :published

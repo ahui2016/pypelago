@@ -16,6 +16,7 @@ dependencies = [
   "result",
   "requests",
   "humanfriendly",
+  "Jinja2",
 ]
 requires-python = ">=3.10"
 dynamic = ["version", "description"]

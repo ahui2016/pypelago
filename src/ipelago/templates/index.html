@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="stylesheet" href="style.css">
+  <link rel="alternate" type="application/atom+xml" href="{{ feed.link }}">
+  <title>{{ feed.title }}</title>
+</head>
+<body>
+  <h1>{{ feed.title }}</h1>
+  <div class="text-right">
+    <span>Author: {{ feed.author_name }}</span>
+    <br>
+    <span>Updated at {{ feed.updated }}</span>
+  </div>
+
+  <div class="MsgList">
+    {% for item in entries %}
+      <div class="FeedEntry">
+        <div class="EntryTitle">
+          [{{ item.entry_id }}]
+          <span title="{{ item.published }}">{{ item.published[0:10] }}</span>
+        </div>
+        <br>
+        <div class="EntryContent">{{ item.content }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {# a comment #}
+</body>
+</html>

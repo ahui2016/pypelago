@@ -11,6 +11,7 @@ from ipelago.db import (
     update_cfg,
 )
 from ipelago.model import Bucket, my_bucket
+from ipelago.publish import publish_html
 from ipelago.util import print_my_next_msg, print_my_today, print_my_yesterday
 from . import (
     __version__,
@@ -263,6 +264,15 @@ def tl(
             update_cfg(cfg, conn)
         else:
             print_my_next_msg(conn)
+
+    ctx.exit()
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS)
+@click.pass_context
+def publish(ctx: click.Context):
+    with connect_db() as conn:
+        publish_html(conn)
 
     ctx.exit()
 

@@ -1,7 +1,6 @@
 import sqlite3
 from typing import Callable
 import arrow
-
 from result import Err, Ok
 from ipelago.db import (
     get_by_date,

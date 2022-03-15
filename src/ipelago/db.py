@@ -198,10 +198,12 @@ def get_by_date(
     bucket: str,
     conn: sqlite3.Connection,
 ) -> list[FeedEntry]:
-    rows = conn.execute(
+    result: list[FeedEntry] = []
+    for row in conn.execute(
         stmt.Get_by_date, {"bucket": bucket, "published": date + "%", "limit": limit}
-    ).fetchall()
-    return [new_entry_from(row) for row in rows]
+    ):
+        result.append(new_entry_from(row))
+    return result
 
 
 def get_by_date_buckets(
@@ -215,4 +217,15 @@ def get_by_date_buckets(
         entries = get_by_date(date, limit, bucket, conn)
         result += entries
     result.sort(key=lambda x: x.published, reverse=True)
+    return result
+
+
+def get_public_limit(
+    cursor: str, limit: int, conn: sqlite3.Connection
+) -> list[FeedEntry]:
+    result: list[FeedEntry] = []
+    for row in conn.execute(
+        stmt.Get_public_limit, {"published": cursor, "limit": limit}
+    ):
+        result.append(new_entry_from(row))
     return result

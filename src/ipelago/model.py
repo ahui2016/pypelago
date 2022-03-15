@@ -88,7 +88,7 @@ class Feed:
 def new_feed_from(row: dict) -> Feed:
     return Feed(
         feed_id=row["id"],
-        link=row["row"],
+        link=row["link"],
         title=row["title"],
         author_name=row["author_name"],
         updated=row["updated"],
