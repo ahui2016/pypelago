@@ -6,6 +6,7 @@ import arrow
 from result import Ok, Err, Result
 from appdirs import AppDirs
 from ipelago.model import (
+    OK,
     RFC3339,
     AppConfig,
     Bucket,
@@ -18,6 +19,7 @@ from ipelago.model import (
     new_entry_from,
     new_feed_from,
     new_my_msg,
+    next_feed_id,
 )
 from ipelago.shortid import first_id, parse_id
 import ipelago.stmt as stmt
@@ -145,7 +147,7 @@ def init_app(name: str) -> Result[str, str]:
         init_current_list(conn)
         init_current_id(conn)
         init_my_feeds(name, conn)
-    return Ok("OK")
+    return OK
 
 
 def get_current_n(n: int, conn: sqlite3.Connection) -> Result[str, str]:
@@ -157,12 +159,17 @@ def get_current_n(n: int, conn: sqlite3.Connection) -> Result[str, str]:
     return Ok(cl[i])
 
 
-def get_proxies(cfg: AppConfig) -> dict | None:
+def get_proxies_cfg(cfg: AppConfig) -> dict | None:
     if cfg["use_proxy"] and cfg["http_proxy"]:
         return dict(
             http=cfg["http_proxy"],
             https=cfg["http_proxy"],
         )
+
+
+def get_proxies(conn: sqlite3.Connection) -> dict | None:
+    cfg = get_cfg(conn).unwrap()
+    return get_proxies_cfg(cfg)
 
 
 def post_msg(msg: str, bucket: Bucket) -> str:
@@ -243,23 +250,61 @@ def get_subs_list(conn: sqlite3.Connection) -> list[Feed]:
     return subs_list
 
 
-def check_before_subscribe(feed_link:str, conn:sqlite3.Connection) -> Result[str, str]:
-    sl = get_subs_list(conn)
-    if feed_link in sl:
-        return Err(f'Already Exists: {feed_link} (不可重复订阅)')
-    return Ok("OK")
-
-def check_before_update(feed_id:str, force:bool, conn:sqlite3.Connection) -> Result[str,str]:
+def check_before_update(
+    feed_id: str, force: bool, conn: sqlite3.Connection
+) -> Result[str, str]:
     if feed_id in [PublicBucketID, PrivateBucketID]:
-            return Err(f'Not Found: {feed_id}')
+        return Err(f"Not Found: {feed_id}")
 
     match get_feed_by_id(feed_id, conn):
         case Err():
-            return Err(f'Not Found: {feed_id}')
+            return Err(f"Not Found: {feed_id}")
         case Ok(feed):
             updated = arrow.get(feed.updated, RFC3339)
-            if force or updated+UpdateRateLimit < arrow.now().int_timestamp:
-                return Ok("OK")
+            if force or updated + UpdateRateLimit < arrow.now().int_timestamp:
+                return OK
             else:
                 return Err("Too Many Requests (默认每天最多拉取一次)")
+
+
+def insert_entries(entries:list[FeedEntry],conn: sqlite3.Connection) -> None:
+    item_list = [entry.to_dict() for entry in entries]
+    conn.executemany(stmt.Insert_entry, item_list)
+
+def delete_entries(feed_id:str, conn:sqlite3.Connection) -> None:
+    conn.execute(stmt.Delete_entries, (feed_id,))
+
+
+def update_entries(feed_id:str, entries:list[FeedEntry],conn: sqlite3.Connection) -> None:
+    delete_entries(feed_id, conn)
+    insert_entries(entries, conn)
+
+
+def new_feed_id(conn: sqlite3.Connection) -> str:
+    timestamp = 0
+    while True:
+        feed_id, timestamp = next_feed_id(timestamp)
+        row = conn.execute(stmt.Get_feed_id, (feed_id)).fetchone()
+        if not row:
+            return feed_id
     
+def check_before_subscribe(link:str, conn: sqlite3.Connection) -> Result[str, str]:
+    row = conn.execute(stmt.Get_feed_link, (link,)).fetchone()
+    if row:
+        return Err(f"Exists(不可重复订阅): {link}")
+    else:
+        return OK
+
+
+def subscribe_feed(link:str, title:str,conn: sqlite3.Connection) -> str:
+    """Return the feed_id if nothing wrong."""
+    feed_id = new_feed_id(conn)
+    conn.execute(stmt.Insert_feed, dict(
+        id=feed_id,
+        link=link,
+        title=title,
+        author_name='',
+        updated=arrow.now().format(RFC3339),
+        notes='',
+    ))
+    return feed_id

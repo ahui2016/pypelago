@@ -19,6 +19,7 @@ FeedSizeLimitBase: Final[int] = 20 * KB  # RSS feed 体积上限基数
 FeedSizeLimitMargin: Final[int] = 10 * KB  # 体积上限允许超出一点 (比如 XML tag, 日期等的体积)
 FeedSizeLimit: Final[int] = FeedSizeLimitBase + FeedSizeLimitMargin
 
+OK = Ok("OK")
 
 class Bucket(Enum):
     Public = auto()
@@ -41,6 +42,18 @@ class FeedEntry:
     feed_id: str  # (不用于 xml)
     feed_name: str  # (不用于 xml)
     bucket: str  # Bucket.name  # (不用于 xml)
+
+    def to_dict(self) -> dict:
+        return dict(
+            id=self.entry_id,
+            title=self.title,
+            content=self.content,
+            link=self.link,
+            published=self.published,
+            feed_id=self.feed_id,
+            feed_name=self.feed_name,
+            bucket=self.bucket
+        )
 
 
 def new_my_msg(entry_id: str, content: str, bucket: Bucket) -> Result[FeedEntry, str]:
@@ -142,7 +155,8 @@ def utf8_byte_truncate(text: str, max_bytes: int) -> str:
         i -= 1
     return utf8[:i].decode("utf8") + " ..."
 
-def next_hex_id(timestamp:int) -> str:
-    dt = arrow.now() if timestamp == 0 else arrow.get(timestamp+1)
+
+def next_feed_id(timestamp: int) -> tuple[str, int]:
+    dt = arrow.now() if timestamp == 0 else arrow.get(timestamp + 1)
     new_id = hex(dt.int_timestamp)
-    return new_id[2:]
+    return new_id[2:], dt.int_timestamp

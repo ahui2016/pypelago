@@ -16,6 +16,9 @@ dependencies = [
   "result",
   "requests",
   "humanfriendly",
+  "feedparser",
+  "beautifulsoup4",
+  "lxml",
   "Jinja2",
 ]
 requires-python = ">=3.10"

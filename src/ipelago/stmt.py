@@ -40,6 +40,10 @@ Update_metadata = "UPDATE metadata SET value=:value WHERE name=:name;"
 
 Get_feed_by_id = """SELECT * FROM feed WHERE id=?;"""
 
+Get_feed_id = """SELECT id FROM feed WHERE id=?;"""
+
+Get_feed_link = """SELECT link FROM feed WHERE link=?;"""
+
 Insert_feed = """
 INSERT INTO feed (
     id, link, title, author_name, updated, notes
@@ -96,4 +100,8 @@ Get_by_date = """
 SELECT * FROM entry
 WHERE bucket=:bucket and published LIKE :published
 ORDER BY published DESC LIMIT :limit;
+"""
+
+Delete_entries = """
+DELETE FROM entry WHERE feed_id=?;
 """

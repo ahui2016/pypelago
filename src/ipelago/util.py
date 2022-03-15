@@ -1,12 +1,17 @@
 import sqlite3
-from typing import Callable
+from typing import Callable, Final
 import arrow
-from result import Err, Ok
+import requests
+import feedparser
+from feedparser import FeedParserDict
+from result import Err, Ok, Result
 from ipelago.db import (
+    check_before_subscribe,
     get_by_date,
     get_by_date_buckets,
     get_my_next,
     get_cfg,
+    get_proxies,
     update_cfg,
     update_current_list,
 )
@@ -14,6 +19,12 @@ from ipelago.model import (
     Bucket,
     FeedEntry,
 )
+
+RequestsTimeout: Final[int] = 5
+
+
+def requests_get(url: str, conn: sqlite3.Connection):
+    return requests.get(url, proxies=get_proxies(conn), timeout=RequestsTimeout)
 
 
 def print_my_msg(n: int, msg: FeedEntry) -> None:
@@ -76,3 +87,34 @@ def print_my_yesterday(
 ) -> None:
     prefix = arrow.now().shift(days=-1).format("YYYY-MM-DD")
     print_my_entries(prefix, limit, buckets, conn)
+
+
+def retrieve_feed(
+    feed_url: str, conn: sqlite3.Connection
+) -> Result[FeedParserDict, str]:
+    """每次 retrieve_feed 之前都应该检查更新频率，避免浪费网络资源。"""
+
+    # 允许添加本地源
+    if not feed_url.startswith("http"):
+        return Ok(feedparser.parse(feed_url))
+
+    print("retrieving", feed_url)
+    r = requests_get(feed_url, conn)
+
+    if r.status_code != 200:
+        return Err(f"Fail: {r.status_code}: {r.text}")
+
+    return Ok(feedparser.parse(r.text))
+
+
+def subscribe(link:str, title:str, conn: sqlite3.Connection) -> None:
+    e = check_before_subscribe(link, conn).err()
+    if e:
+        print(e)
+        return
+    
+    match retrieve_feed(link, conn):
+        case Err(e):
+            print(e)
+            return
+        case Ok(parser_dict):
