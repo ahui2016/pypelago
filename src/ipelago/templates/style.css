@@ -4,3 +4,12 @@
 .text-right {
   text-align: right;
 }
+
+.FeedEntry {
+  margin-bottom: 1.5rem;
+}
+
+.EntryTitle {
+  color: gray;
+  font-size: small;
+}

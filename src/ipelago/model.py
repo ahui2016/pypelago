@@ -54,7 +54,7 @@ def new_my_msg(entry_id: str, content: str, bucket: Bucket) -> Result[FeedEntry,
         title="",
         content=content,
         link="",
-        published=arrow.now().format(arrow.FORMAT_RFC3339),
+        published=arrow.now().format(RFC3339),
         feed_id=feed_id,
         feed_name="",
         bucket=bucket.name,
@@ -77,7 +77,7 @@ def new_entry_from(row: dict) -> FeedEntry:
 
 @dataclass
 class Feed:
-    feed_id: str  # Publice/Private/RandomID
+    feed_id: str  # Publice/Private/HexID
     link: str  # link to the feed itself (订阅地址)
     title: str  # size limit: 256 bytes
     author_name: str  # size limit: 256 bytes
@@ -120,8 +120,6 @@ def default_config() -> AppConfig:
 
 CurrentList = list[str]  # list[entry_id]
 
-SubsList = list[Feed]
-
 
 def byte_len(s: str) -> int:
     return len(s.encode("utf8"))
@@ -143,3 +141,8 @@ def utf8_byte_truncate(text: str, max_bytes: int) -> str:
     while i > 0 and not utf8_lead_byte(utf8[i]):
         i -= 1
     return utf8[:i].decode("utf8") + " ..."
+
+def next_hex_id(timestamp:int) -> str:
+    dt = arrow.now() if timestamp == 0 else arrow.get(timestamp+1)
+    new_id = hex(dt.int_timestamp)
+    return new_id[2:]

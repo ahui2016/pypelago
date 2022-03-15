@@ -27,8 +27,8 @@ def first_id() -> str:
 
 def parse_id(id_str: str) -> ShortID:
     """有“万年虫”问题，大概公元五万年时本算法会出错，当然，这个问题可以忽略。"""
-    year = int(id_str[0:3], 36)  # 可以姑且认为年份总是占三个字符
-    n = int(id_str[3 : len(id_str)], 36)
+    year = int(id_str[:3], 36)  # 可以姑且认为年份总是占三个字符
+    n = int(id_str[3 :], 36)
     return ShortID(year=year, n=n)
 
 

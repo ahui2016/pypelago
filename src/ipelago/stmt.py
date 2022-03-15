@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS metadata
 
 CREATE TABLE IF NOT EXISTS feed
 (
-    id            text   NOT NULL UNIQUE,
+    id            text   PRIMARY KEY COLLATE NOCASE,
     link          text   NOT NULL UNIQUE,
     title         text   NOT NULL,
     author_name   text   NOT NULL,
@@ -19,12 +19,12 @@ CREATE INDEX IF NOT EXISTS idx_feed_updated ON feed(updated);
 
 CREATE TABLE IF NOT EXISTS entry
 (
-    id          text   NOT NULL UNIQUE,
+    id          text   PRIMARY KEY COLLATE NOCASE,
     title       text   NOT NULL,
     content     text   NOT NULL,
     link        text   NOT NULL,
     published   text   NOT NULL,
-    feed_id     REFERENCES feed(id) ON DELETE CASCADE,
+    feed_id     REFERENCES feed(id) ON UPDATE CASCADE ON DELETE CASCADE,
     feed_name   text   NOT NULL,
     bucket      text   NOT NULL
 );
@@ -52,6 +52,11 @@ Insert_my_feed = """
 INSERT INTO feed (
     id, link, title, author_name, updated, notes
 ) VALUES (:id, :link, :title, '', '', '');
+"""
+
+Get_subs_list = """
+SELECT * FROM feed WHERE id<>'Public' and id<>'Private'
+ORDER BY id;
 """
 
 Insert_entry = """

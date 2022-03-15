@@ -2,9 +2,11 @@ import json
 from pathlib import Path
 import sqlite3
 from typing import Final
+import arrow
 from result import Ok, Err, Result
 from appdirs import AppDirs
 from ipelago.model import (
+    RFC3339,
     AppConfig,
     Bucket,
     CurrentList,
@@ -20,10 +22,13 @@ from ipelago.model import (
 from ipelago.shortid import first_id, parse_id
 import ipelago.stmt as stmt
 
+Hour: Final[int] = 60 * 60
+Day: Final[int] = 24 * Hour
+UpdateRateLimit: Final[int] = 1 * Day
+
 db_filename: Final[str] = "pypelago.db"
 app_config_name: Final[str] = "app-config"
 current_list_name: Final[str] = "current-list"
-subs_list_name: Final[str] = "subscriptions"
 current_id_name: Final[str] = "current-id"
 
 app_dirs = AppDirs("pypelago", "github-ahui2016")
@@ -229,3 +234,32 @@ def get_public_limit(
     ):
         result.append(new_entry_from(row))
     return result
+
+
+def get_subs_list(conn: sqlite3.Connection) -> list[Feed]:
+    subs_list = []
+    for row in conn.execute(stmt.Get_subs_list):
+        subs_list.append(new_feed_from(row))
+    return subs_list
+
+
+def check_before_subscribe(feed_link:str, conn:sqlite3.Connection) -> Result[str, str]:
+    sl = get_subs_list(conn)
+    if feed_link in sl:
+        return Err(f'Already Exists: {feed_link} (不可重复订阅)')
+    return Ok("OK")
+
+def check_before_update(feed_id:str, force:bool, conn:sqlite3.Connection) -> Result[str,str]:
+    if feed_id in [PublicBucketID, PrivateBucketID]:
+            return Err(f'Not Found: {feed_id}')
+
+    match get_feed_by_id(feed_id, conn):
+        case Err():
+            return Err(f'Not Found: {feed_id}')
+        case Ok(feed):
+            updated = arrow.get(feed.updated, RFC3339)
+            if force or updated+UpdateRateLimit < arrow.now().int_timestamp:
+                return Ok("OK")
+            else:
+                return Err("Too Many Requests (默认每天最多拉取一次)")
+    
