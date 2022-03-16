@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS entry
     content     text   NOT NULL,
     link        text   NOT NULL,
     published   text   NOT NULL,
-    feed_id     REFERENCES feed(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    feed_id     REFERENCES feed(id) ON UPDATE CASCADE COLLATE NOCASE,
     feed_name   text   NOT NULL,
     bucket      text   NOT NULL
 );
@@ -45,8 +45,20 @@ Update_metadata: Final[str] = "UPDATE metadata SET value=:value WHERE name=:name
 Get_feed_by_id: Final[
     str
 ] = """
-SELECT * FROM feed WHERE id=?;
-"""
+    SELECT * FROM feed WHERE id=?;
+    """
+
+# Get_feed_by_id_prefix: Final[
+#     str
+# ] = """
+#     SELECT * FROM feed WHERE id LIKE ?;
+#     """
+
+Delete_feed: Final[
+    str
+] = """
+    DELETE FROM feed WHERE id=?;
+    """
 
 Get_feed_id: Final[
     str
@@ -154,5 +166,5 @@ ORDER BY published DESC LIMIT :limit;
 Delete_entries: Final[
     str
 ] = """
-DELETE FROM entry WHERE feed_id=?;
-"""
+    DELETE FROM entry WHERE feed_id=?;
+    """

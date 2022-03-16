@@ -13,6 +13,7 @@ from ipelago.db import (
     get_cfg,
     get_news_next,
     get_proxies,
+    get_subs_list,
     insert_entries,
     subscribe_feed,
     update_cfg,
@@ -144,3 +145,26 @@ def subscribe(link: str, conn: sqlite3.Connection) -> None:
             feed_id = subscribe_feed(link, feed_title, conn)
             entries = feed_to_entries(feed_id, feed_title, parser_dict)
             insert_entries(entries, conn)
+
+
+def print_subs_list(conn: sqlite3.Connection) -> None:
+    sl = get_subs_list(conn)
+    if not sl:
+        print("Info: 尚未订阅任何源。")
+        print("Try 'ago news -follow [url]' to subscribe a feed.")
+        return
+
+    for feed in sl:
+        print(f"[{feed.feed_id}] {feed.title}\n{feed.link}\n")
+
+
+# def delete_feed(prefix:str, conn: sqlite3.Connection) -> None:
+#     feeds = get_feed_by_id_prefix(prefix, conn)
+#     if len(feeds) < 1:
+#         print(f'Not Found: {prefix}')
+#     elif len(feeds) == 1:
+#         print(delete_feed_by_id(feeds[0].feed_id, conn))
+#     else:
+#         for feed in feeds:
+#             print(f"[{feed.feed_id}]\n{feed.title}\n{feed.link}\n")
+#         print('')

@@ -5,6 +5,8 @@ import arrow
 
 from result import Err, Ok, Result
 
+from ipelago.shortid import base_repr
+
 
 Hour: Final[int] = 60 * 60
 Day: Final[int] = 24 * Hour
@@ -158,5 +160,5 @@ def utf8_byte_truncate(text: str, max_bytes: int) -> str:
 
 def next_feed_id(timestamp: int) -> tuple[str, int]:
     dt = arrow.now() if timestamp == 0 else arrow.get(timestamp + 1)
-    new_id = hex(dt.int_timestamp)
-    return new_id[2:], dt.int_timestamp
+    new_id = base_repr(dt.int_timestamp, 36)
+    return new_id, dt.int_timestamp

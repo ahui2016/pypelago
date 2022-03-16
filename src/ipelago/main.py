@@ -4,6 +4,7 @@ import pyperclip
 from result import Result
 from ipelago.db import (
     connect_db,
+    delete_feed,
     get_cfg,
     db_path,
     init_app,
@@ -17,6 +18,7 @@ from ipelago.util import (
     print_my_today,
     print_my_yesterday,
     print_news_next_msg,
+    print_subs_list,
     subscribe,
 )
 from . import (
@@ -42,6 +44,12 @@ def check(ctx: click.Context, r: Result[Any, str], force_exit: bool) -> None:
 def check_init(ctx: click.Context) -> None:
     if not db_path.exists():
         click.echo("请先使用 'ago init' 命令进行初始化")
+        ctx.exit()
+
+
+def check_id(ctx: click.Context, item_id: str | None) -> None:
+    if not item_id:
+        click.echo("Error: require to specify an id.")
         ctx.exit()
 
 
@@ -289,7 +297,7 @@ def publish(ctx: click.Context):
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
-@click.option("feed_list", "-l", "--list", is_flag=True, help="List all feeds.")
+@click.option("show_list", "-l", "--list", is_flag=True, help="List all feeds.")
 @click.option("follow", "-follow", "--follow", help="Subscribe a feed.")
 @click.option(
     "first", "-first", "--first", is_flag=True, help="Read the latest message."
@@ -299,8 +307,9 @@ def publish(ctx: click.Context):
     "limit", "-limit", "--limit", type=int, help="Limit the number of messages."
 )
 @click.option("update", "-u", "--update", is_flag=True, help="Update a feed.")
+@click.option("feed_id", "-id", "--id", help="Specify a feed by id.")
 @click.option("name", "-name", "--name", help="Set the name of a feed.")
-@click.option("delete", "-d", "--delete", help="Delete a feed (specify by url).")
+@click.option("delete", "-delete", "--delete", help="Delete a feed (specify by id).")
 @click.option(
     "force", "-force", "--force", is_flag=True, help="Force to update or delete."
 )
@@ -309,12 +318,13 @@ def publish(ctx: click.Context):
 def news(
     ctx: click.Context,
     follow: str,
-    feed_list: bool,
+    show_list: bool,
     first: bool,
     next: bool,
     limit: int,
     force: bool,
     update: bool,
+    feed_id: str,
     name: str,
     delete: str,
     zen: bool,
@@ -328,8 +338,15 @@ def news(
         if not limit:
             limit = cfg["cli_page_n"]
 
-        if follow:
+        if show_list:
+            print_subs_list(conn)
+        elif follow:
             subscribe(follow, conn)
+        elif delete:
+            if not force:
+                click.echo("Error: require '-force' to delete a feed.")
+                ctx.exit()
+            click.echo(delete_feed(delete, conn))
         elif first:
             cfg["news_cursor"] = ""
             update_cfg(cfg, conn)

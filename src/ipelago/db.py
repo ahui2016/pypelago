@@ -91,9 +91,17 @@ def init_current_id(conn: sqlite3.Connection) -> None:
 
 def get_feed_by_id(feed_id: str, conn: sqlite3.Connection) -> Result[Feed, str]:
     row = conn.execute(stmt.Get_feed_by_id, (feed_id,)).fetchone()
-    if row is None:
+    if not row:
         return Err(NoResultError)
     return Ok(new_feed_from(row))
+
+
+# def get_feed_by_id_prefix(prefix:str, conn: sqlite3.Connection) -> list[Feed]]:
+#     rows = conn.execute(stmt.Get_feed_by_id_prefix, (prefix+"%",)).fetchall()
+#     if not rows:
+#         return []
+
+#     return [new_feed_from(row) for row in rows]
 
 
 def init_my_feeds(title: str, conn: sqlite3.Connection) -> None:
@@ -292,3 +300,13 @@ def subscribe_feed(link: str, title: str, conn: sqlite3.Connection) -> str:
         ),
     )
     return feed_id
+
+
+def delete_feed(feed_id: str, conn: sqlite3.Connection) -> str:
+    row = conn.execute(stmt.Get_feed_id, (feed_id,)).fetchone()
+    if not row:
+        return f"Not Found: {feed_id}"
+
+    conn.execute(stmt.Delete_feed, (feed_id,))
+    delete_entries(feed_id, conn)
+    return "OK. 已删除"
