@@ -10,7 +10,6 @@ from ipelago.model import (
     RFC3339,
     AppConfig,
     Bucket,
-    CurrentList,
     Feed,
     FeedEntry,
     PrivateBucketID,
@@ -30,7 +29,6 @@ UpdateRateLimit: Final[int] = 1 * Day
 
 db_filename: Final[str] = "pypelago.db"
 app_config_name: Final[str] = "app-config"
-current_list_name: Final[str] = "current-list"
 current_id_name: Final[str] = "current-id"
 
 app_dirs = AppDirs("pypelago", "github-ahui2016")
@@ -91,26 +89,6 @@ def init_current_id(conn: sqlite3.Connection) -> None:
         conn.execute(stmt.Insert_metadata, (current_id_name, first_id()))
 
 
-def get_current_list(conn: sqlite3.Connection) -> Result[CurrentList, str]:
-    row = conn.execute(stmt.Get_metadata, (current_list_name,)).fetchone()
-    if row is None:
-        return Err(NoResultError)
-    cl = json.loads(row[0])
-    return Ok(cl)
-
-
-def update_current_list(cl: CurrentList, conn: sqlite3.Connection) -> None:
-    conn.execute(
-        stmt.Update_metadata, {"value": json.dumps(cl), "name": current_list_name}
-    )
-
-
-def init_current_list(conn: sqlite3.Connection) -> None:
-    cl = get_current_list(conn)
-    if cl.err():
-        conn.execute(stmt.Insert_metadata, (current_list_name, json.dumps([])))
-
-
 def get_feed_by_id(feed_id: str, conn: sqlite3.Connection) -> Result[Feed, str]:
     row = conn.execute(stmt.Get_feed_by_id, (feed_id,)).fetchone()
     if row is None:
@@ -144,19 +122,9 @@ def init_app(name: str) -> Result[str, str]:
     with connect_db() as conn:
         conn.executescript(stmt.Create_tables)
         init_cfg(conn)
-        init_current_list(conn)
         init_current_id(conn)
         init_my_feeds(name, conn)
     return OK
-
-
-def get_current_n(n: int, conn: sqlite3.Connection) -> Result[str, str]:
-    cl = get_current_list(conn).unwrap()
-
-    i = n - 1
-    if i < 0 or i >= len(cl):
-        return Err("IndexError: list index out of range")
-    return Ok(cl[i])
 
 
 def get_proxies_cfg(cfg: AppConfig) -> dict | None:
@@ -197,9 +165,18 @@ def post_msg(msg: str, bucket: Bucket) -> str:
 
 def get_my_next(cursor: str, conn: sqlite3.Connection) -> Result[FeedEntry, str]:
     row = conn.execute(stmt.Get_my_next_entry, {"published": cursor}).fetchone()
-    if row is None:
+    if not row:
         row = conn.execute(stmt.Get_my_first_entry).fetchone()
-    if row is None:
+    if not row:
+        return Err(NoResultError)
+    return Ok(new_entry_from(row))
+
+
+def get_news_next(cursor: str, conn: sqlite3.Connection) -> Result[FeedEntry, str]:
+    row = conn.execute(stmt.Get_news_next_entry, {"published": cursor}).fetchone()
+    if not row:
+        row = conn.execute(stmt.Get_news_first_entry).fetchone()
+    if not row:
         return Err(NoResultError)
     return Ok(new_entry_from(row))
 
@@ -267,15 +244,18 @@ def check_before_update(
                 return Err("Too Many Requests (默认每天最多拉取一次)")
 
 
-def insert_entries(entries:list[FeedEntry],conn: sqlite3.Connection) -> None:
+def insert_entries(entries: list[FeedEntry], conn: sqlite3.Connection) -> None:
     item_list = [entry.to_dict() for entry in entries]
     conn.executemany(stmt.Insert_entry, item_list)
 
-def delete_entries(feed_id:str, conn:sqlite3.Connection) -> None:
+
+def delete_entries(feed_id: str, conn: sqlite3.Connection) -> None:
     conn.execute(stmt.Delete_entries, (feed_id,))
 
 
-def update_entries(feed_id:str, entries:list[FeedEntry],conn: sqlite3.Connection) -> None:
+def update_entries(
+    feed_id: str, entries: list[FeedEntry], conn: sqlite3.Connection
+) -> None:
     delete_entries(feed_id, conn)
     insert_entries(entries, conn)
 
@@ -284,11 +264,12 @@ def new_feed_id(conn: sqlite3.Connection) -> str:
     timestamp = 0
     while True:
         feed_id, timestamp = next_feed_id(timestamp)
-        row = conn.execute(stmt.Get_feed_id, (feed_id)).fetchone()
+        row = conn.execute(stmt.Get_feed_id, (feed_id,)).fetchone()
         if not row:
             return feed_id
-    
-def check_before_subscribe(link:str, conn: sqlite3.Connection) -> Result[str, str]:
+
+
+def check_before_subscribe(link: str, conn: sqlite3.Connection) -> Result[str, str]:
     row = conn.execute(stmt.Get_feed_link, (link,)).fetchone()
     if row:
         return Err(f"Exists(不可重复订阅): {link}")
@@ -296,15 +277,18 @@ def check_before_subscribe(link:str, conn: sqlite3.Connection) -> Result[str, st
         return OK
 
 
-def subscribe_feed(link:str, title:str,conn: sqlite3.Connection) -> str:
+def subscribe_feed(link: str, title: str, conn: sqlite3.Connection) -> str:
     """Return the feed_id if nothing wrong."""
     feed_id = new_feed_id(conn)
-    conn.execute(stmt.Insert_feed, dict(
-        id=feed_id,
-        link=link,
-        title=title,
-        author_name='',
-        updated=arrow.now().format(RFC3339),
-        notes='',
-    ))
+    conn.execute(
+        stmt.Insert_feed,
+        dict(
+            id=feed_id,
+            link=link,
+            title=title,
+            author_name="",
+            updated=arrow.now().format(RFC3339),
+            notes="",
+        ),
+    )
     return feed_id

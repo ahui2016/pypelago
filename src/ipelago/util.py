@@ -11,14 +11,19 @@ from ipelago.db import (
     get_by_date_buckets,
     get_my_next,
     get_cfg,
+    get_news_next,
     get_proxies,
+    insert_entries,
+    subscribe_feed,
     update_cfg,
-    update_current_list,
 )
 from ipelago.model import (
     Bucket,
     FeedEntry,
+    ShortStrSizeLimit,
+    utf8_byte_truncate,
 )
+from ipelago.parser import feed_to_entries
 
 RequestsTimeout: Final[int] = 5
 
@@ -27,9 +32,9 @@ def requests_get(url: str, conn: sqlite3.Connection):
     return requests.get(url, proxies=get_proxies(conn), timeout=RequestsTimeout)
 
 
-def print_my_msg(n: int, msg: FeedEntry) -> None:
+def print_my_msg(msg: FeedEntry, show_link: bool = False) -> None:
     date = arrow.get(msg.published).format("YYYY-MM-DD")
-    title = f"[{n}] [{msg.entry_id}] [{date}]"
+    title = f"[{msg.entry_id}] [{date}]"
     if Bucket[msg.bucket] is Bucket.Private:
         title += " [private]"
     print(f"{title}\n{msg.content}\n")
@@ -38,33 +43,50 @@ def print_my_msg(n: int, msg: FeedEntry) -> None:
 def print_my_next_msg(conn: sqlite3.Connection) -> None:
     cfg = get_cfg(conn).unwrap()
     match get_my_next(cfg["tl_cursor"], conn):
-        case Err(_):
+        case Err():
             cfg["tl_cursor"] = ""
             update_cfg(cfg, conn)
-            update_current_list([], conn)
             print("我的消息：空空如也。")
             print("Try 'ago post [message]' to post a message.")
         case Ok(msg):
             cfg["tl_cursor"] = msg.published
             update_cfg(cfg, conn)
-            update_current_list([msg.entry_id], conn)
-            print_my_msg(1, msg)
+            print_my_msg(msg)
+
+
+def print_news_msg(msg: FeedEntry, show_link: bool) -> None:
+    date = arrow.get(msg.published).format("YYYY-MM-DD")
+    title = f"[{msg.entry_id[:4]}] [{date}]"
+    print(f"{title}\n{msg.content}")
+    if show_link and msg.link:
+        print(f"[link] {msg.link}")
+    print()
+
+
+def print_news_next_msg(conn: sqlite3.Connection) -> None:
+    cfg = get_cfg(conn).unwrap()
+    match get_news_next(cfg["news_cursor"], conn):
+        case Err():
+            cfg["news_cursor"] = ""
+            update_cfg(cfg, conn)
+            print("订阅消息：空空如也。")
+            print("Try 'ago news -follow [url]' to subscribe a feed.")
+        case Ok(msg):
+            cfg["news_cursor"] = msg.published
+            update_cfg(cfg, conn)
+            print_news_msg(msg, cfg["news_show_link"])
 
 
 def print_entries(
     entries: list[FeedEntry],
-    printer: Callable[[int, FeedEntry], None],
-    conn: sqlite3.Connection,
+    show_link: bool,
+    printer: Callable[[FeedEntry, bool], None],
 ) -> None:
     if not entries:
         print("No message. (找不到该命令指定的消息)")
-        update_current_list([], conn)
         return
-    cl = []
-    for i, entry in enumerate(entries):
-        printer(i + 1, entry)
-        cl.append(entry.entry_id)
-    update_current_list(cl, conn)
+    for entry in entries:
+        printer(entry, show_link)
 
 
 def print_my_entries(
@@ -74,7 +96,7 @@ def print_my_entries(
         entries = get_by_date_buckets(prefix, limit, buckets, conn)
     else:
         entries = get_by_date(prefix, limit, buckets[0], conn)
-    print_entries(entries, print_my_msg, conn)
+    print_entries(entries, False, print_my_msg)
 
 
 def print_my_today(limit: int, buckets: list[str], conn: sqlite3.Connection) -> None:
@@ -107,14 +129,18 @@ def retrieve_feed(
     return Ok(feedparser.parse(r.text))
 
 
-def subscribe(link:str, title:str, conn: sqlite3.Connection) -> None:
+def subscribe(link: str, conn: sqlite3.Connection) -> None:
     e = check_before_subscribe(link, conn).err()
     if e:
         print(e)
         return
-    
+
     match retrieve_feed(link, conn):
         case Err(e):
             print(e)
             return
         case Ok(parser_dict):
+            feed_title = utf8_byte_truncate(parser_dict.feed.title, ShortStrSizeLimit)
+            feed_id = subscribe_feed(link, feed_title, conn)
+            entries = feed_to_entries(feed_id, feed_title, parser_dict)
+            insert_entries(entries, conn)

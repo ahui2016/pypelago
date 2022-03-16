@@ -4,15 +4,23 @@ from feedparser import FeedParserDict
 from ipelago.model import (
     RFC3339,
     Bucket,
+    ShortStrSizeLimit,
+    EntrySizeLimit,
     FeedEntry,
+    utf8_byte_truncate,
 )
+from ipelago.shortid import rand_date_id
 
-def PubDateToRFC3339(pubdate: str) ->  str:
+
+def PubDateToRFC3339(pubdate: str) -> str:
     a = arrow.get(0)
     try:
         a = arrow.get(pubdate).to("local")
     except arrow.parser.ParserError:
         pass
+
+    if a.int_timestamp > 0:
+        return a.format(RFC3339)
 
     date_formats = [
         "DD MMM YYYY HH:mm:ss Z",
@@ -50,57 +58,58 @@ def get_text_from_soup(soup, sep: str = "\n") -> str:
     return sep.join(contents)
 
 
-def mstdn_to_entries(parserDict: FeedParserDict, title: bool) -> list[FeedEntry]:
+def mstdn_to_entries(
+    feed_id: str, feed_title: str, parser_dict: FeedParserDict, title: bool
+) -> list[FeedEntry]:
     entries = []
-    for item in parserDict.entries:
+    for item in parser_dict.entries:
         published = PubDateToRFC3339(item.published)
         link = item.get("link")
-        contents = ""
-
-        if title:
-            contents = item.title
+        contents = item.title if title else ""
 
         soup = BeautifulSoup(item.description, "html.parser")
         body = f"{contents}\n{get_text_from_soup(soup)}"
         msg = FeedEntry(
-            feed_id=date_id,
-            IslandID="",  # 为节省流量，在服务器端统一填充
-            IslandName="",  # 为节省流量，在服务器端统一填充
-            Hide=False,
-            Time=timestamp,
-            Body=utf8_byte_truncate(body, OneMsgSizeLimit),
-            Notes=utf8_byte_truncate(link, OneMsgSizeLimit),
+            entry_id=rand_date_id(),
+            content=utf8_byte_truncate(body, EntrySizeLimit),
+            link=utf8_byte_truncate(link, ShortStrSizeLimit),
+            published=published,
+            feed_id=feed_id,
+            feed_name=feed_title,
+            bucket=Bucket.News.name,
         )
-        messages.append(msg)
+        entries.append(msg)
 
-    return messages
-
-
-def feed_to_messages(feed: FeedParserDict) -> list[Message]:
-    print("feed-id:", feed.feed.get("id", ""))
-    print("feed-link:", feed.feed.get("link", ""))
-
-    if feed.feed.get("id") == "https://www.v2ex.com/":
-        return mstdn_to_messages(feed, True)
-    if feed.feed.get("link") == "https://sspai.com":
-        return mstdn_to_messages(feed, True)
-
-    return mstdn_to_messages(feed, False)
+    return entries
 
 
-def messages_to_json(messages: list[Message]) -> tuple[str, ErrMsg]:
-    m_json = json.dumps(messages, ensure_ascii=False)
+def feed_to_entries(
+    feed_id: str, feed_title: str, parser_dict: FeedParserDict
+) -> list[FeedEntry]:
+    print("feed-id:", parser_dict.feed.get("id", ""))
+    print("feed-link:", parser_dict.feed.get("link", ""))
+
+    if parser_dict.feed.get("id") == "https://www.v2ex.com/":
+        return mstdn_to_entries(feed_id, feed_title, parser_dict, True)
+    if parser_dict.feed.get("link") == "https://sspai.com":
+        return mstdn_to_entries(feed_id, feed_title, parser_dict, True)
+
+    return mstdn_to_entries(feed_id, feed_title, parser_dict, False)
+
+
+"""
+def messages_to_json(entries: list[FeedEntry]) -> Result[str, str]:
+    m_json = json.dumps(entries, ensure_ascii=False)
     news_size = len(m_json)
-    if news_size > NewsSizeLimit:
+    if news_size > FeedSizeLimit:
         # 如果体积太大，取一半消息，如果还是太大，就返回错误。
-        messages = messages[: len(messages) // 2]
-        m_json = json.dumps(messages, ensure_ascii=False)
+        entries = entries[: len(entries) // 2]
+        m_json = json.dumps(entries, ensure_ascii=False)
         news_size = len(m_json)
-        if news_size > NewsSizeLimit:
-            return (
-                "",
-                f"feed size({format_size(news_size)}) > limit({format_size(NewsSizeLimit)})",
+        if news_size > FeedSizeLimit:
+            return Err(
+                f"feed size({format_size(news_size)}) > limit({format_size(FeedSizeLimit)})",
             )
 
-    return m_json, None
-
+    return Ok(m_json)
+"""

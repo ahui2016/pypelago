@@ -1,7 +1,7 @@
 from typing import Any, cast
 import click
 import pyperclip
-from result import Err, Ok, Result
+from result import Result
 from ipelago.db import (
     connect_db,
     get_cfg,
@@ -12,7 +12,13 @@ from ipelago.db import (
 )
 from ipelago.model import Bucket, my_bucket
 from ipelago.publish import publish_html
-from ipelago.util import print_my_next_msg, print_my_today, print_my_yesterday
+from ipelago.util import (
+    print_my_next_msg,
+    print_my_today,
+    print_my_yesterday,
+    print_news_next_msg,
+    subscribe,
+)
 from . import (
     __version__,
     __package_name__,
@@ -238,6 +244,8 @@ def tl(
 
     Example 3: ago tl -today -limit 30 (设定上限为 30 条消息)
     """
+    check_init(ctx)
+
     with connect_db() as conn:
         cfg = get_cfg(conn).unwrap()
 
@@ -262,6 +270,7 @@ def tl(
         elif first:
             cfg["tl_cursor"] = ""
             update_cfg(cfg, conn)
+            print_my_next_msg(conn)
         else:
             print_my_next_msg(conn)
 
@@ -271,8 +280,62 @@ def tl(
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 def publish(ctx: click.Context):
+    check_init(ctx)
+
     with connect_db() as conn:
         publish_html(conn)
+
+    ctx.exit()
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS)
+@click.option("feed_list", "-l", "--list", is_flag=True, help="List all feeds.")
+@click.option("follow", "-follow", "--follow", help="Subscribe a feed.")
+@click.option(
+    "first", "-first", "--first", is_flag=True, help="Read the latest message."
+)
+@click.option("next", "-next", "--next", is_flag=True, help="Read the next message.")
+@click.option(
+    "limit", "-limit", "--limit", type=int, help="Limit the number of messages."
+)
+@click.option("update", "-u", "--update", is_flag=True, help="Update a feed.")
+@click.option("name", "-name", "--name", help="Set the name of a feed.")
+@click.option("delete", "-d", "--delete", help="Delete a feed (specify by url).")
+@click.option(
+    "force", "-force", "--force", is_flag=True, help="Force to update or delete."
+)
+@click.option("zen", "-zen", "--zen-mode", is_flag=True, help="Zen mode. (专注模式)")
+@click.pass_context
+def news(
+    ctx: click.Context,
+    follow: str,
+    feed_list: bool,
+    first: bool,
+    next: bool,
+    limit: int,
+    force: bool,
+    update: bool,
+    name: str,
+    delete: str,
+    zen: bool,
+):
+    """Subscribe and read feeds. (订阅别人的消息)"""
+    check_init(ctx)
+
+    with connect_db() as conn:
+        cfg = get_cfg(conn).unwrap()
+
+        if not limit:
+            limit = cfg["cli_page_n"]
+
+        if follow:
+            subscribe(follow, conn)
+        elif first:
+            cfg["news_cursor"] = ""
+            update_cfg(cfg, conn)
+            print_news_next_msg(conn)
+        else:
+            print_news_next_msg(conn)
 
     ctx.exit()
 

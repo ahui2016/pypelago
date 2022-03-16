@@ -14,12 +14,14 @@ PublicBucketID: Final[str] = "Public"
 PrivateBucketID: Final[str] = "Private"
 
 KB: Final[int] = 1024
-OneMsgSizeLimit: Final[int] = KB  # 一条消息的体积上限
+EntrySizeLimit: Final[int] = KB  # 一条消息的体积上限
 FeedSizeLimitBase: Final[int] = 20 * KB  # RSS feed 体积上限基数
 FeedSizeLimitMargin: Final[int] = 10 * KB  # 体积上限允许超出一点 (比如 XML tag, 日期等的体积)
 FeedSizeLimit: Final[int] = FeedSizeLimitBase + FeedSizeLimitMargin
+ShortStrSizeLimit: Final[int] = 256  # bytes
 
 OK = Ok("OK")
+
 
 class Bucket(Enum):
     Public = auto()
@@ -35,7 +37,6 @@ def my_bucket(pri: bool) -> Bucket:
 @dataclass
 class FeedEntry:
     entry_id: str  # ShortID
-    title: str  # size limit: 256 bytes
     content: str  # size limit: 1024 bytes
     link: str  # # size limit: 256 bytes
     published: str  # RFC3339(UTC)
@@ -46,25 +47,23 @@ class FeedEntry:
     def to_dict(self) -> dict:
         return dict(
             id=self.entry_id,
-            title=self.title,
             content=self.content,
             link=self.link,
             published=self.published,
             feed_id=self.feed_id,
             feed_name=self.feed_name,
-            bucket=self.bucket
+            bucket=self.bucket,
         )
 
 
 def new_my_msg(entry_id: str, content: str, bucket: Bucket) -> Result[FeedEntry, str]:
     size = byte_len(content)
-    if size > OneMsgSizeLimit:
-        return Err(f"size {size} > limit({OneMsgSizeLimit})")
+    if size > EntrySizeLimit:
+        return Err(f"size {size} > limit({EntrySizeLimit})")
 
     feed_id = PublicBucketID if bucket is Bucket.Public else PrivateBucketID
     entry = FeedEntry(
         entry_id=entry_id,
-        title="",
         content=content,
         link="",
         published=arrow.now().format(RFC3339),
@@ -78,7 +77,6 @@ def new_my_msg(entry_id: str, content: str, bucket: Bucket) -> Result[FeedEntry,
 def new_entry_from(row: dict) -> FeedEntry:
     return FeedEntry(
         entry_id=row["id"],
-        title=row["title"],
         content=row["content"],
         link=row["link"],
         published=row["published"],
@@ -112,6 +110,7 @@ def new_feed_from(row: dict) -> Feed:
 class AppConfig(TypedDict):
     tl_cursor: str  # RFC3339(UTC)
     news_cursor: str  # RFC3339(UTC)
+    news_show_link: bool
     zen_mode: bool  # 专注模式
     cli_page_n: int  # 命令行每页列表条数默认上限
     web_page_n: int  # 网页每页列表条数默认上限
@@ -123,6 +122,7 @@ def default_config() -> AppConfig:
     return AppConfig(
         tl_cursor="",
         news_cursor="",
+        news_show_link=False,
         zen_mode=False,
         cli_page_n=9,
         web_page_n=50,

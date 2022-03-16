@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from random import randrange
 import arrow
 
 
@@ -59,3 +60,14 @@ def base_repr(number: int, base: int = 10, padding: int = 0) -> str:
     if number < 0:
         res.append("-")
     return "".join(reversed(res or "0"))
+
+
+def rand_date_id() -> str:
+    """前 4 个字符是随机生成，后面是时间戳。"""
+    n_min = int("1000", 36)
+    n_max = int("zzzz", 36)
+    n_rand = randrange(n_min, n_max + 1)
+    id_head = base_repr(n_rand, 36)
+    now = arrow.now().int_timestamp
+    id_tail = base_repr(now, 36)
+    return id_head + "-" + id_tail
