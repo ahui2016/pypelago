@@ -5,19 +5,7 @@ import requests
 import feedparser
 from feedparser import FeedParserDict
 from result import Err, Ok, Result
-from ipelago.db import (
-    check_before_subscribe,
-    get_by_date,
-    get_by_date_buckets,
-    get_my_next,
-    get_cfg,
-    get_news_next,
-    get_proxies,
-    get_subs_list,
-    insert_entries,
-    subscribe_feed,
-    update_cfg,
-)
+import ipelago.db as db
 from ipelago.model import (
     Bucket,
     FeedEntry,
@@ -30,7 +18,7 @@ RequestsTimeout: Final[int] = 5
 
 
 def requests_get(url: str, conn: sqlite3.Connection):
-    return requests.get(url, proxies=get_proxies(conn), timeout=RequestsTimeout)
+    return requests.get(url, proxies=db.get_proxies(conn), timeout=RequestsTimeout)
 
 
 def print_my_msg(msg: FeedEntry, show_link: bool = False) -> None:
@@ -42,16 +30,16 @@ def print_my_msg(msg: FeedEntry, show_link: bool = False) -> None:
 
 
 def print_my_next_msg(conn: sqlite3.Connection) -> None:
-    cfg = get_cfg(conn).unwrap()
-    match get_my_next(cfg["tl_cursor"], conn):
+    cfg = db.get_cfg(conn).unwrap()
+    match db.get_my_next(cfg["tl_cursor"], conn):
         case Err():
             cfg["tl_cursor"] = ""
-            update_cfg(cfg, conn)
+            db.update_cfg(cfg, conn)
             print("我的消息：空空如也。")
             print("Try 'ago post [message]' to post a message.")
         case Ok(msg):
             cfg["tl_cursor"] = msg.published
-            update_cfg(cfg, conn)
+            db.update_cfg(cfg, conn)
             print_my_msg(msg)
 
 
@@ -65,16 +53,16 @@ def print_news_msg(msg: FeedEntry, show_link: bool) -> None:
 
 
 def print_news_next_msg(conn: sqlite3.Connection) -> None:
-    cfg = get_cfg(conn).unwrap()
-    match get_news_next(cfg["news_cursor"], conn):
+    cfg = db.get_cfg(conn).unwrap()
+    match db.get_news_next(cfg["news_cursor"], conn):
         case Err():
             cfg["news_cursor"] = ""
-            update_cfg(cfg, conn)
+            db.update_cfg(cfg, conn)
             print("订阅消息：空空如也。")
             print("Try 'ago news -follow [url]' to subscribe a feed.")
         case Ok(msg):
             cfg["news_cursor"] = msg.published
-            update_cfg(cfg, conn)
+            db.update_cfg(cfg, conn)
             print_news_msg(msg, cfg["news_show_link"])
 
 
@@ -94,9 +82,9 @@ def print_my_entries(
     prefix: str, limit: int, buckets: list[str], conn: sqlite3.Connection
 ) -> None:
     if len(buckets) > 1:
-        entries = get_by_date_buckets(prefix, limit, buckets, conn)
+        entries = db.get_by_date_buckets(prefix, limit, buckets, conn)
     else:
-        entries = get_by_date(prefix, limit, buckets[0], conn)
+        entries = db.get_by_date(prefix, limit, buckets[0], conn)
     print_entries(entries, False, print_my_msg)
 
 
@@ -131,7 +119,7 @@ def retrieve_feed(
 
 
 def subscribe(link: str, conn: sqlite3.Connection) -> None:
-    e = check_before_subscribe(link, conn).err()
+    e = db.check_before_subscribe(link, conn).err()
     if e:
         print(e)
         return
@@ -142,14 +130,14 @@ def subscribe(link: str, conn: sqlite3.Connection) -> None:
             return
         case Ok(parser_dict):
             feed_title = utf8_byte_truncate(parser_dict.feed.title, ShortStrSizeLimit)
-            feed_id = subscribe_feed(link, feed_title, conn)
+            feed_id = db.subscribe_feed(link, feed_title, conn)
             entries = feed_to_entries(feed_id, feed_title, parser_dict)
-            insert_entries(entries, conn)
+            db.insert_entries(entries, conn)
 
 
 # 如果指定 feed_id, 则只显示指定的一个源，否则显示全部源的信息。
 def print_subs_list(conn: sqlite3.Connection, feed_id: str = "") -> None:
-    sl = get_subs_list(conn, feed_id)
+    sl = db.get_subs_list(conn, feed_id)
     if not sl:
         if feed_id:
             print(f"Not Found: {feed_id}")
@@ -168,13 +156,18 @@ def print_subs_list(conn: sqlite3.Connection, feed_id: str = "") -> None:
         print(f"[{feed.feed_id}] {feed.title}\n{feed.link}\n")
 
 
-# def delete_feed(prefix:str, conn: sqlite3.Connection) -> None:
-#     feeds = get_feed_by_id_prefix(prefix, conn)
-#     if len(feeds) < 1:
-#         print(f'Not Found: {prefix}')
-#     elif len(feeds) == 1:
-#         print(delete_feed_by_id(feeds[0].feed_id, conn))
-#     else:
-#         for feed in feeds:
-#             print(f"[{feed.feed_id}]\n{feed.title}\n{feed.link}\n")
-#         print('')
+def move_to_fav(prefix:str, conn: sqlite3.Connection) -> None:
+    entries = db.get_entry_by_prefix(prefix, conn)
+    if len(entries) < 1:
+        print(f'Not Found: {prefix}')
+    elif len(entries) == 1:
+        match db.move_to_fav(entries[0].entry_id, conn):
+            case Err(e):
+                print(e)
+            case Ok():
+                print_fav_entry()
+    else:
+        print_require_long_id()
+        for feed in entries:
+            print(f"[{feed.feed_id}]\n{feed.title}\n{feed.link}\n")
+        print('')

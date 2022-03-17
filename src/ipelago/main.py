@@ -2,29 +2,10 @@ from typing import Any, cast
 import click
 import pyperclip
 from result import Result
-from ipelago.db import (
-    connect_db,
-    delete_feed,
-    get_cfg,
-    db_path,
-    get_news_by_feed,
-    init_app,
-    post_msg,
-    update_cfg,
-    update_feed_id,
-)
+import ipelago.db as db
 from ipelago.model import AppConfig, Bucket, my_bucket
 from ipelago.publish import publish_html
-from ipelago.util import (
-    print_entries,
-    print_my_next_msg,
-    print_my_today,
-    print_my_yesterday,
-    print_news_msg,
-    print_news_next_msg,
-    print_subs_list,
-    subscribe,
-)
+import ipelago.util as util
 from . import (
     __version__,
     __package_name__,
@@ -46,7 +27,7 @@ def check(ctx: click.Context, r: Result[Any, str], force_exit: bool) -> None:
 
 
 def check_init(ctx: click.Context) -> None:
-    if not db_path.exists():
+    if not db.db_path.exists():
         click.echo("请先使用 'ago init' 命令进行初始化")
         ctx.exit()
 
@@ -70,10 +51,10 @@ def show_info(ctx: click.Context, _, value):
 
     click.echo(f"[ago] {__file__}")
     click.echo(f"[version] {__version__}")
-    click.echo(f"[database] {db_path}")
+    click.echo(f"[database] {db.db_path}")
 
-    with connect_db() as conn:
-        cfg = get_cfg(conn).unwrap()
+    with db.connect_db() as conn:
+        cfg = db.get_cfg(conn).unwrap()
         click.echo(f"[Zen Mode Always ON] {cfg['zen_mode']}")
         click.echo(f"[http_proxy] {cfg['http_proxy']}")
         click.echo(f"[use_proxy] {cfg['use_proxy']}")
@@ -87,8 +68,8 @@ def set_proxy(ctx, _, value):
         return
     check_init(ctx)
 
-    with connect_db() as conn:
-        cfg = get_cfg(conn).unwrap()
+    with db.connect_db() as conn:
+        cfg = db.get_cfg(conn).unwrap()
         value = cast(str, value).lower()
         if value == "true":
             cfg["use_proxy"] = True
@@ -96,7 +77,7 @@ def set_proxy(ctx, _, value):
             cfg["use_proxy"] = False
         else:
             cfg["http_proxy"] = value
-        update_cfg(cfg, conn)
+        db.update_cfg(cfg, conn)
 
         click.echo("OK.")
         click.echo(f"[http_proxy] {cfg['http_proxy']}")
@@ -109,11 +90,11 @@ def toggle_zen(ctx: click.Context, _, value):
         return
     check_init(ctx)
 
-    with connect_db() as conn:
-        cfg = get_cfg(conn).unwrap()
+    with db.connect_db() as conn:
+        cfg = db.get_cfg(conn).unwrap()
         cfg["zen_mode"] = not cfg["zen_mode"]
         click.echo(f"[Zen Mode Always ON] {cfg['zen_mode']}")
-        update_cfg(cfg, conn)
+        db.update_cfg(cfg, conn)
     ctx.exit()
 
 
@@ -158,7 +139,7 @@ def cli(ctx: click.Context, name: str):
     """
     if ctx.invoked_subcommand is None:
         if name:
-            click.echo(init_app(name))
+            click.echo(db.init_app(name))
             ctx.exit()
 
         click.echo(ctx.get_help())
@@ -180,7 +161,7 @@ def init_command(ctx: click.Context, name: str):
 
     Example: ago init "Emily's Microblog"
     """
-    click.echo(init_app(name))
+    click.echo(db.init_app(name))
     ctx.exit()
 
 
@@ -215,7 +196,7 @@ def post(ctx: click.Context, msg: Any, filename: str, pri: bool):
         except Exception:
             pass
 
-    click.echo(post_msg(msg, my_bucket(pri)))
+    click.echo(db.post_msg(msg, my_bucket(pri)))
     ctx.exit()
 
 
@@ -266,8 +247,8 @@ def tl(
     """
     check_init(ctx)
 
-    with connect_db() as conn:
-        cfg = get_cfg(conn).unwrap()
+    with db.connect_db() as conn:
+        cfg = db.get_cfg(conn).unwrap()
 
         if not limit:
             limit = cfg["cli_page_n"]
@@ -279,27 +260,25 @@ def tl(
             buckets = [Bucket.Private.name]
 
         if today:
-            print_my_today(limit, buckets, conn)
+            util.print_my_today(limit, buckets, conn)
         elif yesterday:
-            print_my_yesterday(limit, buckets, conn)
+            util.print_my_yesterday(limit, buckets, conn)
         elif first:
             zen_mode(cfg, zen)
             cfg["tl_cursor"] = ""
-            update_cfg(cfg, conn)
-            print_my_next_msg(conn)
+            db.update_cfg(cfg, conn)
+            util.print_my_next_msg(conn)
         else:
             zen_mode(cfg, zen)
-            print_my_next_msg(conn)
+            util.print_my_next_msg(conn)
 
     ctx.exit()
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
-@click.option(
-    "force", "-force", "--force", is_flag=True, help="Confirm overwrite."
-)
+@click.option("force", "-force", "--force", is_flag=True, help="Confirm overwrite.")
 @click.pass_context
-def publish(ctx: click.Context, force:bool):
+def publish(ctx: click.Context, force: bool):
     check_init(ctx)
 
     if not force:
@@ -307,7 +286,7 @@ def publish(ctx: click.Context, force:bool):
         click.echo("请使用 '-force' 参数确认覆盖当前目录的 public 文件夹的内容。")
         ctx.exit()
 
-    with connect_db() as conn:
+    with db.connect_db() as conn:
         publish_html(conn)
 
     ctx.exit()
@@ -349,41 +328,46 @@ def news(
     """Subscribe and read feeds. (订阅别人的消息)"""
     check_init(ctx)
 
-    with connect_db() as conn:
-        cfg = get_cfg(conn).unwrap()
+    with db.connect_db() as conn:
+        cfg = db.get_cfg(conn).unwrap()
 
         if not limit:
             limit = cfg["cli_page_n"]
 
         if show_list:
-            print_subs_list(conn)
+            util.print_subs_list(conn)
         elif follow:
-            subscribe(follow, conn)
+            util.subscribe(follow, conn)
         elif new_id:
             """这是既有 new_id 也有 feed_id 的情形"""
             check_id(ctx, feed_id)
-            check(ctx, update_feed_id(feed_id, new_id, conn), False)
-            print_subs_list(conn, new_id)
+            check(ctx, db.update_feed_id(feed_id, new_id, conn), False)
+            util.print_subs_list(conn, new_id)
         elif feed_id:
             """这是只有 feed_id, 没有 new_id 的情形"""
-            entries = get_news_by_feed(feed_id, limit, conn)
-            print_entries(entries, cfg["news_show_link"], print_news_msg)
+            entries = db.get_news_by_feed(feed_id, limit, conn)
+            util.print_entries(entries, cfg["news_show_link"], util.print_news_msg)
         elif delete:
             if not force:
                 click.echo("Error: require '-force' to delete a feed.")
                 ctx.exit()
-            click.echo(delete_feed(delete, conn))
+            click.echo(db.delete_feed(delete, conn))
         elif first:
             zen_mode(cfg, zen)
             cfg["news_cursor"] = ""
-            update_cfg(cfg, conn)
-            print_news_next_msg(conn)
+            db.update_cfg(cfg, conn)
+            util.print_news_next_msg(conn)
         else:
             zen_mode(cfg, zen)
-            print_news_next_msg(conn)
+            util.print_news_next_msg(conn)
 
     ctx.exit()
 
+
+@cli.command(context_settings=CONTEXT_SETTINGS)
+@click.pass_context
+def fav(ctx:click.Context):
+    pass
 
 if __name__ == "__main__":
     cli(obj={})

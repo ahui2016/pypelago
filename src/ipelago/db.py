@@ -105,14 +105,6 @@ def get_feed_by_id(feed_id: str, conn: sqlite3.Connection) -> Result[Feed, str]:
     return Ok(new_feed_from(row))
 
 
-# def get_feed_by_id_prefix(prefix:str, conn: sqlite3.Connection) -> list[Feed]]:
-#     rows = conn.execute(stmt.Get_feed_by_id_prefix, (prefix+"%",)).fetchall()
-#     if not rows:
-#         return []
-
-#     return [new_feed_from(row) for row in rows]
-
-
 def init_my_feeds(title: str, conn: sqlite3.Connection) -> None:
     my_pub = get_feed_by_id(PublicBucketID, conn)
     if my_pub.err():
@@ -192,9 +184,14 @@ def get_my_next(cursor: str, conn: sqlite3.Connection) -> Result[FeedEntry, str]
 def get_news_next(cursor: str, conn: sqlite3.Connection) -> Result[FeedEntry, str]:
     row = conn.execute(stmt.Get_news_next_entry, {"published": cursor}).fetchone()
     if not row:
-        row = conn.execute(stmt.Get_news_first_entry).fetchone()
+        # 回到最新一条消息
+        row = conn.execute(
+            stmt.Get_entries_limit, {"bucket": Bucket.News.name, "limit": 1}
+        ).fetchone()
+
     if not row:
         return Err(NoResultError)
+
     return Ok(new_entry_from(row))
 
 
@@ -349,3 +346,19 @@ def update_feed_id(
 
     connExec(conn, stmt.Update_entry_feed_id, {"oldid": oldid, "newid": newid}).unwrap()
     return OK
+
+
+def get_entry_by_prefix(prefix:str, conn: sqlite3.Connection) -> list[FeedEntry]:
+    rows = conn.execute(stmt.Get_entry_by_id_prefix, (prefix+"%",)).fetchall()
+    if not rows:
+        return []
+
+    return [new_entry_from(row) for row in rows]
+
+
+def move_to_fav(entry_id:str, conn:sqlite3.Connection) -> str:
+    match connExec(conn, stmt.Move_entry_to_fav, { "oldid": entry_id, "newid": get_next_id(conn)}):
+        case Err(e):
+            return e
+        case Ok():
+            return "OK."

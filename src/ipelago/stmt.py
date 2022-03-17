@@ -48,12 +48,6 @@ Get_feed_by_id: Final[
     SELECT * FROM feed WHERE id=?;
     """
 
-# Get_feed_by_id_prefix: Final[
-#     str
-# ] = """
-#     SELECT * FROM feed WHERE id LIKE ?;
-#     """
-
 Delete_feed: Final[
     str
 ] = """
@@ -144,11 +138,11 @@ WHERE (bucket='Public' or bucket='Private') and published < :published
 ORDER BY published DESC LIMIT 1;
 """
 
-Get_news_first_entry: Final[
+Get_entries_limit: Final[
     str
 ] = """
-SELECT * FROM entry WHERE bucket='News'
-ORDER BY published DESC LIMIT 1;
+SELECT * FROM entry WHERE bucket=:bucket
+ORDER BY published DESC LIMIT :limit;
 """
 
 Get_news_next_entry: Final[
@@ -158,6 +152,18 @@ SELECT * FROM entry
 WHERE bucket='News' and published < :published
 ORDER BY published DESC LIMIT 1;
 """
+
+Get_entry_by_id: Final[
+    str
+] = """
+    SELECT * FROM entry WHERE id=?;
+    """
+
+Get_entry_by_id_prefix: Final[
+    str
+] = """
+    SELECT * FROM entry WHERE id LIKE ?;
+    """
 
 Get_public_limit: Final[
     str
@@ -174,6 +180,19 @@ SELECT * FROM entry
 WHERE bucket=:bucket and published LIKE :published
 ORDER BY published DESC LIMIT :limit;
 """
+
+Move_entry_to_fav: Final[
+    str
+] = """
+    UPDATE entry SET id=:newid, bucket='Fav' WHERE id=:oldid
+    DELETE FROM entry WHERE id=?;
+    """
+
+Delete_entry: Final[
+    str
+] = """
+    DELETE FROM entry WHERE id=?;
+    """
 
 Delete_entries: Final[
     str
