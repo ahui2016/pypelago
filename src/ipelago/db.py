@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 import sqlite3
-from typing import Final
+from typing import Any, Final, Iterable
 import arrow
 from result import Ok, Err, Result
 from appdirs import AppDirs
@@ -42,6 +42,15 @@ def connect_db() -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def connExec(
+    conn: sqlite3.Connection, query: str, param: Iterable[Any]
+) -> Result[int, str]:
+    n = conn.execute(query, param).rowcount
+    if n <= 0:
+        return Err("sqlite row affected = 0")
+    return Ok(n)
 
 
 def get_cfg(conn: sqlite3.Connection) -> Result[AppConfig, str]:
@@ -122,17 +131,17 @@ def init_my_feeds(title: str, conn: sqlite3.Connection) -> None:
         )
 
 
-def init_app(name: str) -> Result[str, str]:
+def init_app(name: str) -> str:
     """在正式使用前必须先使用该函数进行初始化。"""
     app_config_dir.mkdir(parents=True, exist_ok=True)
     if db_path.exists():
-        return Err("不可重复初始化")
+        return "不可重复初始化"
     with connect_db() as conn:
         conn.executescript(stmt.Create_tables)
         init_cfg(conn)
         init_current_id(conn)
         init_my_feeds(name, conn)
-    return OK
+    return "OK. 初始化成功。"
 
 
 def get_proxies_cfg(cfg: AppConfig) -> dict | None:
@@ -228,10 +237,26 @@ def get_public_limit(
     return result
 
 
-def get_subs_list(conn: sqlite3.Connection) -> list[Feed]:
-    subs_list = []
-    for row in conn.execute(stmt.Get_subs_list):
-        subs_list.append(new_feed_from(row))
+def get_news_by_feed(
+    feed_id: str, limit: int, conn: sqlite3.Connection
+) -> list[FeedEntry]:
+    result: list[FeedEntry] = []
+    for row in conn.execute(
+        stmt.Get_news_by_feed, {"feed_id": feed_id, "limit": limit}
+    ):
+        result.append(new_entry_from(row))
+    return result
+
+
+def get_subs_list(conn: sqlite3.Connection, feed_id: str = "") -> list[Feed]:
+    subs_list: list[Feed] = []
+    if feed_id:
+        feed = get_feed_by_id(feed_id, conn).ok()
+        if feed:
+            subs_list.append(feed)
+    else:
+        for row in conn.execute(stmt.Get_subs_list):
+            subs_list.append(new_feed_from(row))
     return subs_list
 
 
@@ -310,3 +335,13 @@ def delete_feed(feed_id: str, conn: sqlite3.Connection) -> str:
     conn.execute(stmt.Delete_feed, (feed_id,))
     delete_entries(feed_id, conn)
     return "OK. 已删除"
+
+
+def update_feed_id(
+    oldid: str, newid: str, conn: sqlite3.Connection
+) -> Result[str, str]:
+    err = connExec(conn, stmt.Update_feed_id, {"oldid": oldid, "newid": newid}).err()
+    if err:
+        return Err(err)
+    connExec(conn, stmt.Update_entry_feed_id, {"oldid": oldid, "newid": newid}).unwrap()
+    return OK

@@ -57,7 +57,7 @@ def print_my_next_msg(conn: sqlite3.Connection) -> None:
 
 def print_news_msg(msg: FeedEntry, show_link: bool) -> None:
     date = arrow.get(msg.published).format("YYYY-MM-DD")
-    title = f"[{msg.entry_id[:4]}] [{date}]"
+    title = f"[{msg.entry_id[:4]}] ({msg.feed_id}) {date}"
     print(f"{title}\n{msg.content}")
     if show_link and msg.link:
         print(f"[link] {msg.link}")
@@ -147,11 +147,21 @@ def subscribe(link: str, conn: sqlite3.Connection) -> None:
             insert_entries(entries, conn)
 
 
-def print_subs_list(conn: sqlite3.Connection) -> None:
-    sl = get_subs_list(conn)
+# 如果指定 feed_id, 则只显示指定的一个源，否则显示全部源的信息。
+def print_subs_list(conn: sqlite3.Connection, feed_id: str = "") -> None:
+    sl = get_subs_list(conn, feed_id)
     if not sl:
+        if feed_id:
+            print(f"Not Found: {feed_id}")
+            return
         print("Info: 尚未订阅任何源。")
         print("Try 'ago news -follow [url]' to subscribe a feed.")
+        return
+
+    print()
+    if feed_id:
+        feed = sl[0]
+        print(f"[{feed.feed_id}] {feed.title}\n{feed.link}\n")
         return
 
     for feed in sl:

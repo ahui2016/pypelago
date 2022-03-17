@@ -7,16 +7,20 @@ from ipelago.db import (
     delete_feed,
     get_cfg,
     db_path,
+    get_news_by_feed,
     init_app,
     post_msg,
     update_cfg,
+    update_feed_id,
 )
-from ipelago.model import Bucket, my_bucket
+from ipelago.model import AppConfig, Bucket, my_bucket
 from ipelago.publish import publish_html
 from ipelago.util import (
+    print_entries,
     print_my_next_msg,
     print_my_today,
     print_my_yesterday,
+    print_news_msg,
     print_news_next_msg,
     print_subs_list,
     subscribe,
@@ -51,6 +55,12 @@ def check_id(ctx: click.Context, item_id: str | None) -> None:
     if not item_id:
         click.echo("Error: require to specify an id.")
         ctx.exit()
+
+
+def zen_mode(cfg: AppConfig, zen: bool) -> None:
+    if cfg["zen_mode"] or zen:
+        print()
+        click.clear()
 
 
 def show_info(ctx: click.Context, _, value):
@@ -148,7 +158,8 @@ def cli(ctx: click.Context, name: str):
     """
     if ctx.invoked_subcommand is None:
         if name:
-            check(ctx, init_app(name), True)
+            click.echo(init_app(name))
+            ctx.exit()
 
         click.echo(ctx.get_help())
         ctx.exit()
@@ -169,7 +180,8 @@ def init_command(ctx: click.Context, name: str):
 
     Example: ago init "Emily's Microblog"
     """
-    check(ctx, init_app(name), True)
+    click.echo(init_app(name))
+    ctx.exit()
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
@@ -266,20 +278,17 @@ def tl(
         if pri:
             buckets = [Bucket.Private.name]
 
-        # 专注模式
-        if cfg["zen_mode"] or zen:
-            print()
-            click.clear()
-
         if today:
             print_my_today(limit, buckets, conn)
         elif yesterday:
             print_my_yesterday(limit, buckets, conn)
         elif first:
+            zen_mode(cfg, zen)
             cfg["tl_cursor"] = ""
             update_cfg(cfg, conn)
             print_my_next_msg(conn)
         else:
+            zen_mode(cfg, zen)
             print_my_next_msg(conn)
 
     ctx.exit()
@@ -307,8 +316,8 @@ def publish(ctx: click.Context):
     "limit", "-limit", "--limit", type=int, help="Limit the number of messages."
 )
 @click.option("update", "-u", "--update", is_flag=True, help="Update a feed.")
-@click.option("feed_id", "-id", "--id", help="Specify a feed by id.")
-@click.option("name", "-name", "--name", help="Set the name of a feed.")
+@click.option("feed_id", "-id", "--id", help="Show messages of a feed.")
+@click.option("new_id", "--new-id", help="Change the id of a feed.")
 @click.option("delete", "-delete", "--delete", help="Delete a feed (specify by id).")
 @click.option(
     "force", "-force", "--force", is_flag=True, help="Force to update or delete."
@@ -325,7 +334,7 @@ def news(
     force: bool,
     update: bool,
     feed_id: str,
-    name: str,
+    new_id: str,
     delete: str,
     zen: bool,
 ):
@@ -342,16 +351,27 @@ def news(
             print_subs_list(conn)
         elif follow:
             subscribe(follow, conn)
+        elif new_id:
+            """这是既有 new_id 也有 feed_id 的情形"""
+            check_id(ctx, feed_id)
+            check(ctx, update_feed_id(feed_id, new_id, conn), False)
+            print_subs_list(conn, new_id)
+        elif feed_id:
+            """这是只有 feed_id, 没有 new_id 的情形"""
+            entries = get_news_by_feed(feed_id, limit, conn)
+            print_entries(entries, cfg["news_show_link"], print_news_msg)
         elif delete:
             if not force:
                 click.echo("Error: require '-force' to delete a feed.")
                 ctx.exit()
             click.echo(delete_feed(delete, conn))
         elif first:
+            zen_mode(cfg, zen)
             cfg["news_cursor"] = ""
             update_cfg(cfg, conn)
             print_news_next_msg(conn)
         else:
+            zen_mode(cfg, zen)
             print_news_next_msg(conn)
 
     ctx.exit()

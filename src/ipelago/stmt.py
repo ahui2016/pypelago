@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS entry
     content     text   NOT NULL,
     link        text   NOT NULL,
     published   text   NOT NULL,
-    feed_id     REFERENCES feed(id) ON UPDATE CASCADE COLLATE NOCASE,
+    feed_id     REFERENCES feed(id) COLLATE NOCASE,
     feed_name   text   NOT NULL,
     bucket      text   NOT NULL
 );
@@ -59,6 +59,18 @@ Delete_feed: Final[
 ] = """
     DELETE FROM feed WHERE id=?;
     """
+
+Update_feed_id: Final[
+    str
+] = """
+UPDATE feed SET id=:newid WHERE id=:oldid;
+"""
+
+Update_entry_feed_id: Final[
+    str
+] = """
+UPDATE entry SET feed_id=:newid WHERE feed_id=:oldid;
+"""
 
 Get_feed_id: Final[
     str
@@ -167,4 +179,11 @@ Delete_entries: Final[
     str
 ] = """
     DELETE FROM entry WHERE feed_id=?;
+    """
+
+Get_news_by_feed: Final[
+    str
+] = """
+    SELECT * FROM entry WHERE feed_id=:feed_id
+    ORDER BY published DESC LIMIT :limit;
     """
