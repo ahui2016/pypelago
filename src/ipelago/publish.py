@@ -43,7 +43,6 @@ def publish_html(conn: sqlite3.Connection) -> None:
     if not index_tmpl.filename:
         raise ValueError(f"NotFound: {filename}")
 
-    print(index_tmpl.filename)
     index_html = index_tmpl.render(
         dict(
             feed=feed,
@@ -51,6 +50,7 @@ def publish_html(conn: sqlite3.Connection) -> None:
         )
     )
     Path(output_folder).mkdir(exist_ok=True)
+    print(f'[output] {Path(output_folder).resolve()}')
     output_file = Path(output_folder).joinpath(filename)
     output_file.write_text(index_html, encoding="utf-8")
     copy_static_files(index_tmpl)

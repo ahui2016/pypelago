@@ -90,7 +90,7 @@ def new_entry_from(row: dict) -> FeedEntry:
 
 @dataclass
 class Feed:
-    feed_id: str  # Publice/Private/HexID
+    feed_id: str  # Publice/Private/DateID
     link: str  # link to the feed itself (订阅地址)
     title: str  # size limit: 256 bytes
     author_name: str  # size limit: 256 bytes

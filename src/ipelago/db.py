@@ -340,8 +340,12 @@ def delete_feed(feed_id: str, conn: sqlite3.Connection) -> str:
 def update_feed_id(
     oldid: str, newid: str, conn: sqlite3.Connection
 ) -> Result[str, str]:
+    if oldid.upper() == newid.upper():
+        return OK
+
     err = connExec(conn, stmt.Update_feed_id, {"oldid": oldid, "newid": newid}).err()
     if err:
         return Err(err)
+
     connExec(conn, stmt.Update_entry_feed_id, {"oldid": oldid, "newid": newid}).unwrap()
     return OK

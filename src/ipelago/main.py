@@ -295,9 +295,17 @@ def tl(
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
+@click.option(
+    "force", "-force", "--force", is_flag=True, help="Confirm overwrite."
+)
 @click.pass_context
-def publish(ctx: click.Context):
+def publish(ctx: click.Context, force:bool):
     check_init(ctx)
+
+    if not force:
+        click.echo("Error: require '-force' to publish.")
+        click.echo("请使用 '-force' 参数确认覆盖当前目录的 public 文件夹的内容。")
+        ctx.exit()
 
     with connect_db() as conn:
         publish_html(conn)
