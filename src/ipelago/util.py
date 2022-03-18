@@ -1,4 +1,3 @@
-from html import entities
 import sqlite3
 from typing import Callable, Final
 import arrow
@@ -201,7 +200,7 @@ def move_to_fav(prefix: str, conn: sqlite3.Connection) -> None:
     if len(entries) < 1:
         print(f"Not Found: {prefix}")
     elif len(entries) == 1:
-        newid =  db.move_to_fav(entries[0].entry_id, conn)
+        newid = db.move_to_fav(entries[0].entry_id, conn)
         entry = db.get_entry_by_prefix(newid[:4], conn)[0]
         print_fav_entry(entry)
     else:
@@ -214,8 +213,8 @@ def print_recent_fav(conn: sqlite3.Connection) -> None:
     cfg = db.get_cfg(conn).unwrap()
     entries = db.get_recent_fav(cfg["cli_page_n"], conn)
     if not entries:
-        print('收藏消息：空空如也。')
+        print("收藏消息：空空如也。")
         print("Try 'ago fav -h' to get help.")
         return
-    
+
     print_entries(entries, False, print_fav_entry)

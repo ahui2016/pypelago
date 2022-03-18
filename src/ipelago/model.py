@@ -60,6 +60,7 @@ class FeedEntry:
 
 
 def new_my_msg(entry_id: str, content: str, bucket: Bucket) -> Result[FeedEntry, str]:
+    content = content.strip()
     size = byte_len(content)
     if size > EntrySizeLimit:
         return Err(f"size {size} > limit({EntrySizeLimit})")

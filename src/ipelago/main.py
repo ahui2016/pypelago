@@ -3,6 +3,7 @@ import click
 import pyperclip
 from result import Result
 import ipelago.db as db
+from ipelago.gui import tk_post_msg
 from ipelago.model import AppConfig, Bucket, my_bucket
 from ipelago.publish import publish_html
 import ipelago.util as util
@@ -173,12 +174,15 @@ def init_command(ctx: click.Context, name: str):
     type=click.Path(exists=True),
     help="Send the content of the file.",
 )
+@click.option(
+    "gui", "-g", "--gui", is_flag=True, help="Open a GUI window for text input."
+)
 @click.argument("msg", nargs=-1)
 @click.option(
     "pri", "-pri", "--private", is_flag=True, help="Specify the private island"
 )
 @click.pass_context
-def post(ctx: click.Context, msg: Any, filename: str, pri: bool):
+def post(ctx: click.Context, msg: Any, filename: str, gui: bool, pri: bool):
     """Post a message. (发送消息)
 
     Example 1: ago post (默认发送系统剪贴板的内容)
@@ -188,6 +192,17 @@ def post(ctx: click.Context, msg: Any, filename: str, pri: bool):
     Example 3: ago post -f ./file.txt (发送文件内容)
     """
     check_init(ctx)
+
+    if filename:
+        with open(filename, "r", encoding="utf-8") as f:
+            msg = f.read()
+        util.post_msg(msg, my_bucket(pri))
+        ctx.exit()
+
+    if gui:
+        tk_post_msg(pri)
+        ctx.exit()
+
     if msg:
         msg = " ".join(msg).strip()
     else:
@@ -365,9 +380,11 @@ def news(
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
-@click.option("entry_id", "-like", "--like", help="Move an entry to the Favorite bucket.")
+@click.option(
+    "entry_id", "-like", "--like", help="Move an entry to the Favorite bucket."
+)
 @click.pass_context
-def fav(ctx: click.Context,entry_id:str):
+def fav(ctx: click.Context, entry_id: str):
     check_init(ctx)
 
     with db.connect_db() as conn:
@@ -380,7 +397,7 @@ def fav(ctx: click.Context,entry_id:str):
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("entry_id", nargs=1)
 @click.pass_context
-def like(ctx: click.Context,entry_id:str):
+def like(ctx: click.Context, entry_id: str):
     """Same as 'ago fav -like'"""
     check_init(ctx)
 
