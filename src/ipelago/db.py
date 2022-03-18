@@ -10,6 +10,7 @@ from ipelago.model import (
     RFC3339,
     AppConfig,
     Bucket,
+    FavBucketID,
     Feed,
     FeedEntry,
     PrivateBucketID,
@@ -17,7 +18,6 @@ from ipelago.model import (
     default_config,
     new_entry_from,
     new_feed_from,
-    new_my_msg,
     next_feed_id,
 )
 from ipelago.shortid import first_id, parse_id
@@ -111,14 +111,26 @@ def init_my_feeds(title: str, conn: sqlite3.Connection) -> None:
         conn.execute(
             stmt.Insert_my_feed, {"id": PublicBucketID, "link": "", "title": title}
         )
+
     my_pri = get_feed_by_id(PrivateBucketID, conn)
     if my_pri.err():
         conn.execute(
             stmt.Insert_my_feed,
             {
                 "id": PrivateBucketID,
-                "link": "http://exmaple.com",
+                "link": PrivateBucketID,
                 "title": "My Private Channel",
+            },
+        )
+
+    my_fav = get_feed_by_id(FavBucketID, conn)
+    if my_fav.err():
+        conn.execute(
+            stmt.Insert_my_feed,
+            {
+                "id": FavBucketID,
+                "link": FavBucketID,
+                "title": "The Favorite Bucket",
             },
         )
 
@@ -147,29 +159,6 @@ def get_proxies_cfg(cfg: AppConfig) -> dict | None:
 def get_proxies(conn: sqlite3.Connection) -> dict | None:
     cfg = get_cfg(conn).unwrap()
     return get_proxies_cfg(cfg)
-
-
-def post_msg(msg: str, bucket: Bucket) -> str:
-    resp = "OK. 已发送至公开岛。"
-    if bucket is Bucket.Private:
-        resp = "OK. 已发送至隐藏岛。"
-
-    with connect_db() as conn:
-        match new_my_msg(get_next_id(conn), msg, bucket):
-            case Err(e):
-                resp = e
-            case Ok(entry):
-                conn.execute(
-                    stmt.Insert_my_entry,
-                    {
-                        "id": entry.entry_id,
-                        "content": entry.content,
-                        "published": entry.published,
-                        "feed_id": entry.feed_id,
-                        "bucket": entry.bucket,
-                    },
-                )
-    return resp
 
 
 def get_my_next(cursor: str, conn: sqlite3.Connection) -> Result[FeedEntry, str]:
@@ -348,17 +337,27 @@ def update_feed_id(
     return OK
 
 
-def get_entry_by_prefix(prefix:str, conn: sqlite3.Connection) -> list[FeedEntry]:
-    rows = conn.execute(stmt.Get_entry_by_id_prefix, (prefix+"%",)).fetchall()
+def get_entry_by_prefix(prefix: str, conn: sqlite3.Connection) -> list[FeedEntry]:
+    rows = conn.execute(stmt.Get_entry_by_id_prefix, (prefix + "%",)).fetchall()
     if not rows:
         return []
 
     return [new_entry_from(row) for row in rows]
 
 
-def move_to_fav(entry_id:str, conn:sqlite3.Connection) -> str:
-    match connExec(conn, stmt.Move_entry_to_fav, { "oldid": entry_id, "newid": get_next_id(conn)}):
+def move_to_fav(entry_id: str, conn: sqlite3.Connection) -> str:
+    newid = get_next_id(conn)
+    match connExec(conn, stmt.Move_entry_to_fav, {"oldid": entry_id, "newid": newid}):
         case Err(e):
-            return e
+            raise RuntimeError(e)
         case Ok():
-            return "OK."
+            return newid
+
+
+def get_recent_fav(limit: int, conn: sqlite3.Connection) -> list[FeedEntry]:
+    entries = []
+    for row in conn.execute(
+        stmt.Get_entries_limit, {"bucket": Bucket.Fav.name, "limit": limit}
+    ):
+        entries.append(new_entry_from(row))
+    return entries

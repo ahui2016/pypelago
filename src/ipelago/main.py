@@ -196,7 +196,7 @@ def post(ctx: click.Context, msg: Any, filename: str, pri: bool):
         except Exception:
             pass
 
-    click.echo(db.post_msg(msg, my_bucket(pri)))
+    util.post_msg(msg, my_bucket(pri))
     ctx.exit()
 
 
@@ -346,7 +346,7 @@ def news(
         elif feed_id:
             """这是只有 feed_id, 没有 new_id 的情形"""
             entries = db.get_news_by_feed(feed_id, limit, conn)
-            util.print_entries(entries, cfg["news_show_link"], util.print_news_msg)
+            util.print_entries(entries, cfg["news_show_link"], util.print_news_short_id)
         elif delete:
             if not force:
                 click.echo("Error: require '-force' to delete a feed.")
@@ -365,9 +365,28 @@ def news(
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
+@click.option("entry_id", "-like", "--like", help="Move an entry to the Favorite bucket.")
 @click.pass_context
-def fav(ctx:click.Context):
-    pass
+def fav(ctx: click.Context,entry_id:str):
+    check_init(ctx)
+
+    with db.connect_db() as conn:
+        if entry_id:
+            util.move_to_fav(entry_id, conn)
+        else:
+            util.print_recent_fav(conn)
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS)
+@click.argument("entry_id", nargs=1)
+@click.pass_context
+def like(ctx: click.Context,entry_id:str):
+    """Same as 'ago fav -like'"""
+    check_init(ctx)
+
+    with db.connect_db() as conn:
+        util.move_to_fav(entry_id, conn)
+
 
 if __name__ == "__main__":
     cli(obj={})

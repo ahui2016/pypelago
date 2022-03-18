@@ -184,8 +184,9 @@ ORDER BY published DESC LIMIT :limit;
 Move_entry_to_fav: Final[
     str
 ] = """
-    UPDATE entry SET id=:newid, bucket='Fav' WHERE id=:oldid
-    DELETE FROM entry WHERE id=?;
+    UPDATE entry SET
+    id=:newid, feed_id='Fav', bucket='Fav'
+    WHERE id=:oldid;
     """
 
 Delete_entry: Final[

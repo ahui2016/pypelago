@@ -1,3 +1,4 @@
+from html import entities
 import sqlite3
 from typing import Callable, Final
 import arrow
@@ -6,10 +7,12 @@ import feedparser
 from feedparser import FeedParserDict
 from result import Err, Ok, Result
 import ipelago.db as db
+import ipelago.stmt as stmt
 from ipelago.model import (
     Bucket,
     FeedEntry,
     ShortStrSizeLimit,
+    new_my_msg,
     utf8_byte_truncate,
 )
 from ipelago.parser import feed_to_entries
@@ -43,13 +46,18 @@ def print_my_next_msg(conn: sqlite3.Connection) -> None:
             print_my_msg(msg)
 
 
-def print_news_msg(msg: FeedEntry, show_link: bool) -> None:
+def print_news(msg: FeedEntry, show_link: bool, short_id: bool) -> None:
+    entry_id = msg.entry_id[:4] if short_id else msg.entry_id
     date = arrow.get(msg.published).format("YYYY-MM-DD")
-    title = f"[{msg.entry_id[:4]}] ({msg.feed_id}) {date}"
+    title = f"[{entry_id}] ({msg.feed_id}) {date}"
     print(f"{title}\n{msg.content}")
     if show_link and msg.link:
         print(f"[link] {msg.link}")
     print()
+
+
+def print_news_short_id(msg: FeedEntry, show_link: bool) -> None:
+    return print_news(msg, show_link, True)
 
 
 def print_news_next_msg(conn: sqlite3.Connection) -> None:
@@ -63,7 +71,7 @@ def print_news_next_msg(conn: sqlite3.Connection) -> None:
         case Ok(msg):
             cfg["news_cursor"] = msg.published
             db.update_cfg(cfg, conn)
-            print_news_msg(msg, cfg["news_show_link"])
+            print_news_short_id(msg, cfg["news_show_link"])
 
 
 def print_entries(
@@ -98,6 +106,26 @@ def print_my_yesterday(
 ) -> None:
     prefix = arrow.now().shift(days=-1).format("YYYY-MM-DD")
     print_my_entries(prefix, limit, buckets, conn)
+
+
+def post_msg(msg: str, bucket: Bucket) -> None:
+    with db.connect_db() as conn:
+        match new_my_msg(db.get_next_id(conn), msg, bucket):
+            case Err(e):
+                print(e)
+            case Ok(entry):
+                conn.execute(
+                    stmt.Insert_my_entry,
+                    {
+                        "id": entry.entry_id,
+                        "content": entry.content,
+                        "published": entry.published,
+                        "feed_id": entry.feed_id,
+                        "bucket": entry.bucket,
+                    },
+                )
+                first = db.get_my_next("", conn).unwrap()
+                print_my_msg(first)
 
 
 def retrieve_feed(
@@ -156,18 +184,38 @@ def print_subs_list(conn: sqlite3.Connection, feed_id: str = "") -> None:
         print(f"[{feed.feed_id}] {feed.title}\n{feed.link}\n")
 
 
-def move_to_fav(prefix:str, conn: sqlite3.Connection) -> None:
+def print_fav_entry(msg: FeedEntry, show_link: bool = False) -> None:
+    date = arrow.get(msg.published).format("YYYY-MM-DD")
+    title = f"[{msg.entry_id}] ({msg.feed_id}) {date}"
+    print(f"{title}\n{msg.content}")
+    print("--------")
+    if msg.link:
+        print(msg.link)
+    elif msg.feed_name:
+        print(msg.feed_name)
+    print()
+
+
+def move_to_fav(prefix: str, conn: sqlite3.Connection) -> None:
     entries = db.get_entry_by_prefix(prefix, conn)
     if len(entries) < 1:
-        print(f'Not Found: {prefix}')
+        print(f"Not Found: {prefix}")
     elif len(entries) == 1:
-        match db.move_to_fav(entries[0].entry_id, conn):
-            case Err(e):
-                print(e)
-            case Ok():
-                print_fav_entry()
+        newid =  db.move_to_fav(entries[0].entry_id, conn)
+        entry = db.get_entry_by_prefix(newid[:4], conn)[0]
+        print_fav_entry(entry)
     else:
-        print_require_long_id()
-        for feed in entries:
-            print(f"[{feed.feed_id}]\n{feed.title}\n{feed.link}\n")
-        print('')
+        for entry in entries:
+            print_news(entry, False, False)
+        print("Require long-id (需要使用完整ID)")
+
+
+def print_recent_fav(conn: sqlite3.Connection) -> None:
+    cfg = db.get_cfg(conn).unwrap()
+    entries = db.get_recent_fav(cfg["cli_page_n"], conn)
+    if not entries:
+        print('收藏消息：空空如也。')
+        print("Try 'ago fav -h' to get help.")
+        return
+    
+    print_entries(entries, False, print_fav_entry)

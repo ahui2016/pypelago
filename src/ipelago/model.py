@@ -14,6 +14,7 @@ RFC3339: Final[str] = "YYYY-MM-DDTHH:mm:ssZZ"
 
 PublicBucketID: Final[str] = "Public"
 PrivateBucketID: Final[str] = "Private"
+FavBucketID: Final[str] = "Fav"
 
 KB: Final[int] = 1024
 EntrySizeLimit: Final[int] = KB  # 一条消息的体积上限
