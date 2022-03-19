@@ -189,6 +189,12 @@ Move_entry_to_fav: Final[
     WHERE id=:oldid;
     """
 
+Update_entry_bucket: Final[
+    str
+] = """
+    UPDATE entry SET bucket=:bucket WHERE id=:id;
+    """
+
 Delete_entry: Final[
     str
 ] = """

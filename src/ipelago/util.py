@@ -162,7 +162,7 @@ def subscribe(link: str, conn: sqlite3.Connection) -> None:
             db.insert_entries(entries, conn)
 
 
-def update_one_feed(feed_id:str, conn: sqlite3.Connection) -> None:
+def update_one_feed(feed_id: str, conn: sqlite3.Connection) -> None:
     match db.check_before_update(feed_id, True, conn):
         case Err(e):
             print(e)
@@ -211,18 +211,42 @@ def print_fav_entry(msg: FeedEntry, show_link: bool = False) -> None:
     print()
 
 
-def move_to_fav(prefix: str, conn: sqlite3.Connection) -> None:
+def get_entry_by_prefix(
+    prefix: str, conn: sqlite3.Connection
+) -> Result[FeedEntry, str]:
     entries = db.get_entry_by_prefix(prefix, conn)
     if len(entries) < 1:
-        print(f"Not Found: {prefix}")
-    elif len(entries) == 1:
-        newid = db.move_to_fav(entries[0].entry_id, conn)
-        entry = db.get_entry_by_prefix(newid[:4], conn)[0]
-        print_fav_entry(entry)
-    else:
+        return Err(f"Not Found: {prefix}")
+
+    if len(entries) > 1:
         for entry in entries:
             print_news(entry, False, False)
-        print("Require long-id (需要使用完整ID)")
+        return Err("Require long-id (需要使用完整ID)")
+
+    return Ok(entries[0])
+
+
+def move_to_fav(prefix: str, conn: sqlite3.Connection) -> None:
+    match get_entry_by_prefix(prefix, conn):
+        case Err(e):
+            print(e)
+        case Ok(entry):
+            newid = db.move_to_fav(entry.entry_id, conn)
+            fav_entry = db.get_entry_by_prefix(newid, conn)[0]
+            print_fav_entry(fav_entry)
+
+
+def toggle_entry_bucket(prefix: str) -> None:
+    with db.connect_db() as conn:
+        match get_entry_by_prefix(prefix, conn):
+            case Err(e):
+                print(e)
+            case Ok(entry):
+                match db.toggle_entry_bucket(entry, conn):
+                    case Err(e):
+                        print(e)
+                    case Ok(toggled):
+                        print_my_msg(toggled)
 
 
 def print_recent_fav(conn: sqlite3.Connection) -> None:

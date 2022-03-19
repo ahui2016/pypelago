@@ -177,30 +177,41 @@ def init_command(ctx: click.Context, name: str):
 @click.option(
     "gui", "-g", "--gui", is_flag=True, help="Open a GUI window for text input."
 )
+@click.option(
+    "toggle", "-toggle", "--toggle", help="Toggle Public/Private of an entry."
+)
 @click.argument("msg", nargs=-1)
 @click.option(
     "pri", "-pri", "--private", is_flag=True, help="Specify the private island"
 )
 @click.pass_context
-def post(ctx: click.Context, msg: Any, filename: str, gui: bool, pri: bool):
+def post(
+    ctx: click.Context, msg: Any, toggle: str, filename: str, gui: bool, pri: bool
+):
     """Post a message. (发送消息)
 
-    Example 1: ago post (默认发送系统剪贴板的内容)
+    Examples:
 
-    Example 2: ago post Hello world! (发送 'Hello world!')
+    ago post (默认发送系统剪贴板的内容)
 
-    Example 3: ago post -f ./file.txt (发送文件内容)
+    ago post Hello world! (写一条微博客，内容为 'Hello world!')
+
+    ago post -g (打开 GUI 窗口写微博客)
     """
     check_init(ctx)
+
+    if gui:
+        tk_post_msg(pri)
+        ctx.exit()
+
+    if toggle:
+        util.toggle_entry_bucket(toggle)
+        ctx.exit()
 
     if filename:
         with open(filename, "r", encoding="utf-8") as f:
             msg = f.read()
         util.post_msg(msg, my_bucket(pri))
-        ctx.exit()
-
-    if gui:
-        tk_post_msg(pri)
         ctx.exit()
 
     if msg:
@@ -212,6 +223,19 @@ def post(ctx: click.Context, msg: Any, filename: str, gui: bool, pri: bool):
             pass
 
     util.post_msg(msg, my_bucket(pri))
+    ctx.exit()
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS)
+@click.argument("entry_id", nargs=1)
+@click.pass_context
+def toggle(ctx: click.Context, entry_id: str):
+    """Same as 'ago post -toggle'
+
+    切换一条消息的公开/隐私状态。
+    """
+    check_init(ctx)
+    util.toggle_entry_bucket(entry_id)
     ctx.exit()
 
 

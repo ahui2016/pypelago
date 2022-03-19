@@ -347,11 +347,8 @@ def get_entry_by_prefix(prefix: str, conn: sqlite3.Connection) -> list[FeedEntry
 
 def move_to_fav(entry_id: str, conn: sqlite3.Connection) -> str:
     newid = get_next_id(conn)
-    match connExec(conn, stmt.Move_entry_to_fav, {"oldid": entry_id, "newid": newid}):
-        case Err(e):
-            raise RuntimeError(e)
-        case Ok():
-            return newid
+    connExec(conn, stmt.Move_entry_to_fav, {"oldid": entry_id, "newid": newid}).unwrap()
+    return newid
 
 
 def get_recent_fav(limit: int, conn: sqlite3.Connection) -> list[FeedEntry]:
@@ -361,3 +358,18 @@ def get_recent_fav(limit: int, conn: sqlite3.Connection) -> list[FeedEntry]:
     ):
         entries.append(new_entry_from(row))
     return entries
+
+
+def toggle_entry_bucket(
+    entry: FeedEntry, conn: sqlite3.Connection
+) -> Result[FeedEntry, str]:
+    bucket = Bucket[entry.bucket]
+    if bucket not in [Bucket.Public, Bucket.Private]:
+        return Err("The bucket is not Public or Private.\n只能在 Public 与 Private 之间切换。")
+
+    toggled = Bucket.Public if bucket is Bucket.Private else Bucket.Private
+    entry.bucket = toggled.name
+    connExec(
+        conn, stmt.Update_entry_bucket, {"bucket": entry.bucket, "id": entry.entry_id}
+    ).unwrap()
+    return Ok(entry)
