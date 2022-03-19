@@ -317,7 +317,7 @@ def publish(ctx: click.Context, force: bool):
 @click.option(
     "limit", "-limit", "--limit", type=int, help="Limit the number of messages."
 )
-@click.option("update", "-u", "--update", is_flag=True, help="Update a feed.")
+@click.option("update", "-u", "--update", help="Update a feed.")
 @click.option("feed_id", "-id", "--id", help="Show messages of a feed.")
 @click.option("new_id", "--new-id", help="Change the id of a feed.")
 @click.option("delete", "-delete", "--delete", help="Delete a feed (specify by id).")
@@ -334,7 +334,7 @@ def news(
     next: bool,
     limit: int,
     force: bool,
-    update: bool,
+    update: str,
     feed_id: str,
     new_id: str,
     delete: str,
@@ -353,6 +353,8 @@ def news(
             util.print_subs_list(conn)
         elif follow:
             util.subscribe(follow, conn)
+        elif update:
+            util.update_one_feed(update, conn)
         elif new_id:
             """这是既有 new_id 也有 feed_id 的情形"""
             check_id(ctx, feed_id)

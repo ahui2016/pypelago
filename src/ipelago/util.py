@@ -162,6 +162,22 @@ def subscribe(link: str, conn: sqlite3.Connection) -> None:
             db.insert_entries(entries, conn)
 
 
+def update_one_feed(feed_id:str, conn: sqlite3.Connection) -> None:
+    match db.check_before_update(feed_id, True, conn):
+        case Err(e):
+            print(e)
+            return
+        case Ok(feed):
+            match retrieve_feed(feed.link, conn):
+                case Err(e):
+                    print(e)
+                    return
+                case Ok(parser_dict):
+                    entries = feed_to_entries(feed_id, feed.title, parser_dict)
+                    db.delete_entries(feed_id, conn)
+                    db.insert_entries(entries, conn)
+
+
 # 如果指定 feed_id, 则只显示指定的一个源，否则显示全部源的信息。
 def print_subs_list(conn: sqlite3.Connection, feed_id: str = "") -> None:
     sl = db.get_subs_list(conn, feed_id)

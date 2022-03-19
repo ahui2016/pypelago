@@ -248,7 +248,7 @@ def get_subs_list(conn: sqlite3.Connection, feed_id: str = "") -> list[Feed]:
 
 def check_before_update(
     feed_id: str, force: bool, conn: sqlite3.Connection
-) -> Result[str, str]:
+) -> Result[Feed, str]:
     if feed_id in [PublicBucketID, PrivateBucketID]:
         return Err(f"Not Found: {feed_id}")
 
@@ -258,7 +258,7 @@ def check_before_update(
         case Ok(feed):
             updated = arrow.get(feed.updated, RFC3339)
             if force or updated + UpdateRateLimit < arrow.now().int_timestamp:
-                return OK
+                return Ok(feed)
             else:
                 return Err("Too Many Requests (默认每天最多拉取一次)")
 
