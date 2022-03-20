@@ -106,6 +106,17 @@ class Feed:
     notes: str = ""  # (不用于 xml)
     parser: str = ""  # (不用于 xml)
 
+    def to_dict(self) -> dict:
+        return dict(
+            id=self.feed_id,
+            link=self.link,
+            title=self.title,
+            author_name=self.author_name,
+            updated=self.updated,
+            notes=self.notes,
+            parser=self.parser,
+        )
+
 
 def new_feed_from(row: dict) -> Feed:
     return Feed(
@@ -115,6 +126,7 @@ def new_feed_from(row: dict) -> Feed:
         author_name=row["author_name"],
         updated=row["updated"],
         notes=row["notes"],
+        parser=row["parser"],
     )
 
 

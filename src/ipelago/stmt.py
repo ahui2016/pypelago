@@ -105,8 +105,8 @@ Insert_my_feed: Final[
     str
 ] = """
     INSERT INTO feed (
-        id, link, title, author_name, updated, notes
-    ) VALUES (:id, :link, :title, '', '', '');
+        id, link, title, author_name, updated, notes, parser
+    ) VALUES (:id, :link, :title, '', '', '', '');
     """
 
 Update_my_feed_info: Final[
@@ -134,7 +134,7 @@ Update_my_feed_author: Final[
 Get_subs_list: Final[
     str
 ] = """
-SELECT * FROM feed WHERE id<>'Public' and id<>'Private'
+SELECT * FROM feed WHERE id<>'Public' and id<>'Private' and id<>'Fav'
 ORDER BY id;
 """
 

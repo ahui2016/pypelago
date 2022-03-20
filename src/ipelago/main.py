@@ -417,7 +417,7 @@ def news(
                 parser = "Base"
             util.subscribe(follow, parser, conn)
         elif update:
-            util.update_one_feed(update, parser, conn)
+            util.update_one_feed(update, parser, force, conn)
         elif new_id:
             """这是既有 new_id 也有 feed_id 的情形"""
             check_id(ctx, feed_id)

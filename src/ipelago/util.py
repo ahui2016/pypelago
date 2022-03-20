@@ -159,14 +159,16 @@ def subscribe(link: str, parser: str, conn: sqlite3.Connection) -> None:
         case Ok(parser_dict):
             feed_title = utf8_byte_truncate(parser_dict.feed.title, ShortStrSizeLimit)
             feed_id = db.subscribe_feed(link, feed_title, parser, conn)
-            entries = feed_to_entries(
-                feed_id, feed_title, MyParser[parser], parser_dict
-            )
+            print_subs_list(conn, feed_id)
+            entries = feed_to_entries(feed_id, feed_title, parser, parser_dict)
             db.insert_entries(entries, conn)
+            print("OK.")
 
 
-def update_one_feed(feed_id: str, parser: str, conn: sqlite3.Connection) -> None:
-    match db.check_before_update(feed_id, parser, True, conn):
+def update_one_feed(
+    feed_id: str, parser: str, force: bool, conn: sqlite3.Connection
+) -> None:
+    match db.check_before_update(feed_id, parser, force, conn):
         case Err(e):
             print(e)
             return
@@ -177,9 +179,10 @@ def update_one_feed(feed_id: str, parser: str, conn: sqlite3.Connection) -> None
                     return
                 case Ok(parser_dict):
                     entries = feed_to_entries(
-                        feed_id, feed.title, MyParser[parser], parser_dict
+                        feed_id, feed.title, feed.parser, parser_dict
                     )
                     db.update_entries(feed_id, entries, conn)
+                    print("OK.")
 
 
 # 如果指定 feed_id, 则只显示指定的一个源，否则显示全部源的信息。

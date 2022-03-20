@@ -106,14 +106,11 @@ def get_feed_by_id(feed_id: str, conn: sqlite3.Connection) -> Result[Feed, str]:
 
 
 def init_my_feeds(title: str, conn: sqlite3.Connection) -> None:
-    my_pub = get_feed_by_id(PublicBucketID, conn)
-    if my_pub.err():
+    if get_feed_by_id(PublicBucketID, conn).err():
         conn.execute(
             stmt.Insert_my_feed, {"id": PublicBucketID, "link": "", "title": title}
         )
-
-    my_pri = get_feed_by_id(PrivateBucketID, conn)
-    if my_pri.err():
+    if get_feed_by_id(PrivateBucketID, conn).err():
         conn.execute(
             stmt.Insert_my_feed,
             {
@@ -122,9 +119,7 @@ def init_my_feeds(title: str, conn: sqlite3.Connection) -> None:
                 "title": "My Private Channel",
             },
         )
-
-    my_fav = get_feed_by_id(FavBucketID, conn)
-    if my_fav.err():
+    if get_feed_by_id(FavBucketID, conn).err():
         conn.execute(
             stmt.Insert_my_feed,
             {
@@ -236,6 +231,10 @@ def get_news_by_feed(
 
 def get_subs_list(conn: sqlite3.Connection, feed_id: str = "") -> list[Feed]:
     subs_list: list[Feed] = []
+
+    if feed_id in [PublicBucketID, PrivateBucketID, FavBucketID]:
+        return []
+
     if feed_id:
         feed = get_feed_by_id(feed_id, conn).ok()
         if feed:
@@ -249,7 +248,7 @@ def get_subs_list(conn: sqlite3.Connection, feed_id: str = "") -> list[Feed]:
 def check_before_update(
     feed_id: str, parser: str, force: bool, conn: sqlite3.Connection
 ) -> Result[Feed, str]:
-    if feed_id in [PublicBucketID, PrivateBucketID]:
+    if feed_id in [PublicBucketID, PrivateBucketID, FavBucketID]:
         return Err(f"Not Found: {feed_id}")
 
     match get_feed_by_id(feed_id, conn):
@@ -259,15 +258,20 @@ def check_before_update(
 
             if parser:
                 connExec(
-                    conn, stmt.Update_feed_parser, {"parser": parser, "id": id}
+                    conn, stmt.Update_feed_parser, {"parser": parser, "id": feed_id}
                 ).unwrap()
+                feed.parser = parser
                 print(f"The parser is set to '{parser}'")
 
             updated = arrow.get(feed.updated, RFC3339)
-            if force or updated + UpdateRateLimit < arrow.now().int_timestamp:
+            if (
+                force
+                or updated.int_timestamp + UpdateRateLimit < arrow.now().int_timestamp
+            ):
                 return Ok(feed)
             else:
-                return Err("Too Many Requests (默认每天最多拉取一次)")
+                return Err("Too Many Requests (默认每天最多拉取一次)\
+                    \n可使用 '-force' 参数强制更新。")
 
 
 def insert_entries(entries: list[FeedEntry], conn: sqlite3.Connection) -> None:
