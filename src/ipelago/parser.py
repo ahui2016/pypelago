@@ -4,6 +4,7 @@ from feedparser import FeedParserDict
 from ipelago.model import (
     RFC3339,
     Bucket,
+    MyParser,
     ShortStrSizeLimit,
     EntrySizeLimit,
     FeedEntry,
@@ -58,17 +59,17 @@ def get_text_from_soup(soup, sep: str = "\n") -> str:
     return sep.join(contents)
 
 
-def mstdn_to_entries(
+def rss_to_entries(
     feed_id: str, feed_title: str, parser_dict: FeedParserDict, title: bool
 ) -> list[FeedEntry]:
     entries = []
     for item in parser_dict.entries:
         published = PubDateToRFC3339(item.published)
         link = item.get("link")
-        contents = item.title if title else ""
+        contents = item.title + "\n" if title else ""
 
         soup = BeautifulSoup(item.description, "html.parser")
-        body = f"{contents}\n{get_text_from_soup(soup)}"
+        body = contents + get_text_from_soup(soup)
         msg = FeedEntry(
             entry_id=rand_date_id(),
             content=utf8_byte_truncate(body, EntrySizeLimit),
@@ -84,17 +85,14 @@ def mstdn_to_entries(
 
 
 def feed_to_entries(
-    feed_id: str, feed_title: str, parser_dict: FeedParserDict
+    feed_id: str, feed_title: str, parser: MyParser, parser_dict: FeedParserDict
 ) -> list[FeedEntry]:
-    print("feed-id:", parser_dict.feed.get("id", ""))
-    print("feed-link:", parser_dict.feed.get("link", ""))
-
-    if parser_dict.feed.get("id") == "https://www.v2ex.com/":
-        return mstdn_to_entries(feed_id, feed_title, parser_dict, True)
-    if parser_dict.feed.get("link") == "https://sspai.com":
-        return mstdn_to_entries(feed_id, feed_title, parser_dict, True)
-
-    return mstdn_to_entries(feed_id, feed_title, parser_dict, False)
+    print(f"Using parser: {parser.name}")
+    match parser:
+        case MyParser.HasTitle:
+            return rss_to_entries(feed_id, feed_title, parser_dict, True)
+        case _:
+            return rss_to_entries(feed_id, feed_title, parser_dict, False)
 
 
 """

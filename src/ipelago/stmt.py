@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS feed
     title         text   NOT NULL,
     author_name   text   NOT NULL,
     updated       text   NOT NULL,
-    notes         text   NOT NULL
+    notes         text   NOT NULL,
+    parser        text   NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_feed_updated ON feed(updated);
@@ -81,33 +82,53 @@ SELECT link FROM feed WHERE link=?;
 Insert_feed: Final[
     str
 ] = """
-INSERT INTO feed (
-    id, link, title, author_name, updated, notes
-) VALUES (
-    :id, :link, :title, :author_name, :updated, :notes
-);
-"""
+    INSERT INTO feed (
+        id, link, title, author_name, updated, notes, parser
+    ) VALUES (
+        :id, :link, :title, :author_name, :updated, :notes, :parser
+    );
+    """
+
+Update_feed_parser: Final[
+    str
+] = """
+    UPDATE feed SET parser=:parser WHERE id=:id;
+    """
+
+Update_feed_updated: Final[
+    str
+] = """
+    UPDATE feed SET updated=:updated WHERE id=:id;
+    """
 
 Insert_my_feed: Final[
     str
 ] = """
-INSERT INTO feed (
-    id, link, title, author_name, updated, notes
-) VALUES (:id, :link, :title, '', '', '');
-"""
+    INSERT INTO feed (
+        id, link, title, author_name, updated, notes
+    ) VALUES (:id, :link, :title, '', '', '');
+    """
 
-Update_my_feed_info: Final[str] = """
+Update_my_feed_info: Final[
+    str
+] = """
     UPDATE feed SET link=:link, title=:title, author_name=:author
-    WHERE id='Public'
+    WHERE id='Public';
     """
-Update_my_feed_link: Final[str] = """
-    UPDATE feed SET link=:link WHERE id='Public'
+Update_my_feed_link: Final[
+    str
+] = """
+    UPDATE feed SET link=:link WHERE id='Public';
     """
-Update_my_feed_title: Final[str] = """
-    UPDATE feed SET title=:title WHERE id='Public'
+Update_my_feed_title: Final[
+    str
+] = """
+    UPDATE feed SET title=:title WHERE id='Public';
     """
-Update_my_feed_author: Final[str] = """
-    UPDATE feed SET author_name=:author WHERE id='Public'
+Update_my_feed_author: Final[
+    str
+] = """
+    UPDATE feed SET author_name=:author WHERE id='Public';
     """
 
 Get_subs_list: Final[
@@ -124,7 +145,7 @@ INSERT INTO entry (
     id, content, link, published, feed_id, feed_name, bucket
 ) VALUES (
     :id, :content, :link, :published, :feed_id, :feed_name, :bucket
-)
+);
 """
 
 Insert_my_entry: Final[
@@ -134,7 +155,7 @@ INSERT INTO entry (
     id, content, link, published, feed_id, feed_name, bucket
 ) VALUES (
     :id, :content, '', :published, :feed_id, '', :bucket
-)
+);
 """
 
 Get_my_first_entry: Final[

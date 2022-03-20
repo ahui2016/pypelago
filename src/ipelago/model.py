@@ -33,6 +33,12 @@ class Bucket(Enum):
     Fav = auto()
 
 
+class MyParser(Enum):
+    Base = auto()  # 忽略 title 和 summary
+    HasTitle = auto()  # 不忽略 title
+    HasSummary = auto()  # 获取 summary 当作正文
+
+
 def my_bucket(pri: bool) -> Bucket:
     return Bucket.Private if pri else Bucket.Public
 
@@ -98,6 +104,7 @@ class Feed:
     author_name: str  # size limit: 256 bytes
     updated: str  # RFC3339
     notes: str = ""  # (不用于 xml)
+    parser: str = ""  # (不用于 xml)
 
 
 def new_feed_from(row: dict) -> Feed:

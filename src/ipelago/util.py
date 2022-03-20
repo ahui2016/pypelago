@@ -10,6 +10,7 @@ import ipelago.stmt as stmt
 from ipelago.model import (
     Bucket,
     FeedEntry,
+    MyParser,
     ShortStrSizeLimit,
     new_my_msg,
     utf8_byte_truncate,
@@ -145,7 +146,7 @@ def retrieve_feed(
     return Ok(feedparser.parse(r.text))
 
 
-def subscribe(link: str, conn: sqlite3.Connection) -> None:
+def subscribe(link: str, parser: str, conn: sqlite3.Connection) -> None:
     e = db.check_before_subscribe(link, conn).err()
     if e:
         print(e)
@@ -157,13 +158,15 @@ def subscribe(link: str, conn: sqlite3.Connection) -> None:
             return
         case Ok(parser_dict):
             feed_title = utf8_byte_truncate(parser_dict.feed.title, ShortStrSizeLimit)
-            feed_id = db.subscribe_feed(link, feed_title, conn)
-            entries = feed_to_entries(feed_id, feed_title, parser_dict)
+            feed_id = db.subscribe_feed(link, feed_title, parser, conn)
+            entries = feed_to_entries(
+                feed_id, feed_title, MyParser[parser], parser_dict
+            )
             db.insert_entries(entries, conn)
 
 
-def update_one_feed(feed_id: str, conn: sqlite3.Connection) -> None:
-    match db.check_before_update(feed_id, True, conn):
+def update_one_feed(feed_id: str, parser: str, conn: sqlite3.Connection) -> None:
+    match db.check_before_update(feed_id, parser, True, conn):
         case Err(e):
             print(e)
             return
@@ -173,9 +176,10 @@ def update_one_feed(feed_id: str, conn: sqlite3.Connection) -> None:
                     print(e)
                     return
                 case Ok(parser_dict):
-                    entries = feed_to_entries(feed_id, feed.title, parser_dict)
-                    db.delete_entries(feed_id, conn)
-                    db.insert_entries(entries, conn)
+                    entries = feed_to_entries(
+                        feed_id, feed.title, MyParser[parser], parser_dict
+                    )
+                    db.update_entries(feed_id, entries, conn)
 
 
 # 如果指定 feed_id, 则只显示指定的一个源，否则显示全部源的信息。

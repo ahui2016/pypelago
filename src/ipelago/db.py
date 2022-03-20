@@ -247,7 +247,7 @@ def get_subs_list(conn: sqlite3.Connection, feed_id: str = "") -> list[Feed]:
 
 
 def check_before_update(
-    feed_id: str, force: bool, conn: sqlite3.Connection
+    feed_id: str, parser: str, force: bool, conn: sqlite3.Connection
 ) -> Result[Feed, str]:
     if feed_id in [PublicBucketID, PrivateBucketID]:
         return Err(f"Not Found: {feed_id}")
@@ -256,6 +256,13 @@ def check_before_update(
         case Err():
             return Err(f"Not Found: {feed_id}")
         case Ok(feed):
+
+            if parser:
+                connExec(
+                    conn, stmt.Update_feed_parser, {"parser": parser, "id": id}
+                ).unwrap()
+                print(f"The parser is set to '{parser}'")
+
             updated = arrow.get(feed.updated, RFC3339)
             if force or updated + UpdateRateLimit < arrow.now().int_timestamp:
                 return Ok(feed)
@@ -277,6 +284,10 @@ def update_entries(
 ) -> None:
     delete_entries(feed_id, conn)
     insert_entries(entries, conn)
+    updated = arrow.now().format(RFC3339)
+    connExec(
+        conn, stmt.Update_feed_updated, {"updated": updated, "id": feed_id}
+    ).unwrap()
 
 
 def new_feed_id(conn: sqlite3.Connection) -> str:
@@ -296,7 +307,7 @@ def check_before_subscribe(link: str, conn: sqlite3.Connection) -> Result[str, s
         return OK
 
 
-def subscribe_feed(link: str, title: str, conn: sqlite3.Connection) -> str:
+def subscribe_feed(link: str, title: str, parser: str, conn: sqlite3.Connection) -> str:
     """Return the feed_id if nothing wrong."""
     feed_id = new_feed_id(conn)
     conn.execute(
@@ -308,6 +319,7 @@ def subscribe_feed(link: str, title: str, conn: sqlite3.Connection) -> str:
             author_name="",
             updated=arrow.now().format(RFC3339),
             notes="",
+            parser=parser,
         ),
     )
     return feed_id
@@ -374,9 +386,10 @@ def toggle_entry_bucket(
     ).unwrap()
     return Ok(entry)
 
+
 def update_my_feed_info(
-    link:str,title:str,author:str, conn: sqlite3.Connection
+    link: str, title: str, author: str, conn: sqlite3.Connection
 ) -> Result[int, str]:
-    return connExec(conn, stmt.Update_my_feed_info, {
-        "link":link,"title":title,"author":author
-    })
+    return connExec(
+        conn, stmt.Update_my_feed_info, {"link": link, "title": title, "author": author}
+    )

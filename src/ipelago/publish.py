@@ -34,7 +34,7 @@ def copy_static_files(tmpl: Template) -> None:
             shutil.copyfile(src, dst)
 
 
-def publish_html(conn: sqlite3.Connection, force:bool) -> None:
+def publish_html(conn: sqlite3.Connection, force: bool) -> None:
     if not force:
         print("Error: require '-force' to publish.")
         print("请使用 '-force' 参数确认覆盖当前目录的 public 文件夹的内容。")
@@ -62,20 +62,22 @@ def publish_html(conn: sqlite3.Connection, force:bool) -> None:
     copy_static_files(index_tmpl)
 
 
-def check_before_publish(conn:sqlite3.Connection) -> Result[str, str]:
+def check_before_publish(conn: sqlite3.Connection) -> Result[str, str]:
     feed = get_feed_by_id(PublicBucketID, conn).unwrap()
     if feed.link == "" or feed.title == "" or feed.author_name == "":
-        return Err("""
+        return Err(
+            """
 第一次发布需要使用 'ago publish -g' 命令录入作者名称等信息。
 另外也可使用 'ago publish --set-author' 等命令。
 如有疑问可使用 'ago publish -h' 获取帮助。
-""")
+"""
+        )
     return OK
 
 
 def publish_show_info(conn: sqlite3.Connection) -> None:
     feed = get_feed_by_id(PublicBucketID, conn).unwrap()
     print("通过 HTML/RSS 对外发布微博客时，对访客显示以下信息：")
-    print(f'[Title] {feed.title}')
-    print(f'[RSS Link] {feed.link}')
-    print(f'[Author] {feed.author_name}')
+    print(f"[Title] {feed.title}")
+    print(f"[RSS Link] {feed.link}")
+    print(f"[Author] {feed.author_name}")

@@ -319,13 +319,23 @@ def tl(
 @click.option(
     "gui", "-g", "--gui-info", is_flag=True, help="Open a GUI window to view/edit info."
 )
-@click.option("info", "-info", "--info", is_flag=True, help="Show informations about my feed.")
+@click.option(
+    "info", "-info", "--info", is_flag=True, help="Show informations about my feed."
+)
 @click.option("link", "--set-link", help="Set the RSS link of my feed.")
 @click.option("title", "--set-title", help="Set the title of my feed.")
 @click.option("author", "--set-author", help="Set the author of my feed.")
 @click.option("force", "-force", "--force", is_flag=True, help="Confirm overwrite.")
 @click.pass_context
-def publish(ctx: click.Context,gui:bool, link:str, title:str, author:str,  info:bool, force: bool):
+def publish(
+    ctx: click.Context,
+    gui: bool,
+    link: str,
+    title: str,
+    author: str,
+    info: bool,
+    force: bool,
+):
     check_init(ctx)
 
     with db.connect_db() as conn:
@@ -335,13 +345,13 @@ def publish(ctx: click.Context,gui:bool, link:str, title:str, author:str,  info:
         elif info:
             publish_show_info(conn)
         elif title:
-            db.connExec(conn, stmt.Update_my_feed_title, { "title":title}).unwrap()
+            db.connExec(conn, stmt.Update_my_feed_title, {"title": title}).unwrap()
             publish_show_info(conn)
         elif link:
-            db.connExec(conn, stmt.Update_my_feed_link, { "link":link}).unwrap()
+            db.connExec(conn, stmt.Update_my_feed_link, {"link": link}).unwrap()
             publish_show_info(conn)
         elif author:
-            db.connExec(conn, stmt.Update_my_feed_author, { "author":author}).unwrap()
+            db.connExec(conn, stmt.Update_my_feed_author, {"author": author}).unwrap()
             publish_show_info(conn)
         else:
             check(ctx, check_before_publish(conn), False)
@@ -353,6 +363,13 @@ def publish(ctx: click.Context,gui:bool, link:str, title:str, author:str,  info:
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.option("show_list", "-l", "--list", is_flag=True, help="List all feeds.")
 @click.option("follow", "-follow", "--follow", help="Subscribe a feed.")
+@click.option(
+    "parser",
+    "-p",
+    "--parser",
+    type=click.Choice(["Base", "HasTitle", "HasSumary"]),
+    help="Select a parser.",
+)
 @click.option(
     "first", "-first", "--first", is_flag=True, help="Read the latest message."
 )
@@ -372,6 +389,7 @@ def publish(ctx: click.Context,gui:bool, link:str, title:str, author:str,  info:
 def news(
     ctx: click.Context,
     follow: str,
+    parser: str,
     show_list: bool,
     first: bool,
     next: bool,
@@ -395,9 +413,11 @@ def news(
         if show_list:
             util.print_subs_list(conn)
         elif follow:
-            util.subscribe(follow, conn)
+            if not parser:
+                parser = "Base"
+            util.subscribe(follow, parser, conn)
         elif update:
-            util.update_one_feed(update, conn)
+            util.update_one_feed(update, parser, conn)
         elif new_id:
             """这是既有 new_id 也有 feed_id 的情形"""
             check_id(ctx, feed_id)

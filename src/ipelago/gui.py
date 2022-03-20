@@ -7,7 +7,8 @@ import ipelago.db as db
 
 import pyperclip
 
-def create_window_center(title:str) -> tk.Tk:
+
+def create_window_center(title: str) -> tk.Tk:
     window = tk.Tk()
     window.title(title)
     window.rowconfigure(0, minsize=500, weight=1)
@@ -23,18 +24,19 @@ def create_window_center(title:str) -> tk.Tk:
 
     return window
 
-def create_input(master:tk.Misc,label:str,text:str,row:int) -> tk.Entry:
+
+def create_input(master: tk.Misc, label: str, text: str, row: int) -> tk.Entry:
     form_label = tk.Label(master=master, text=label)
     form_input = tk.Entry(master=master, width=50)
-    tk.Label(master=master,text=" ").grid(row=row,column=0,pady=5)
-    form_label.grid(row=row,column=1, pady=5)
+    tk.Label(master=master, text=" ").grid(row=row, column=0, pady=5)
+    form_label.grid(row=row, column=1, pady=5)
     form_input.grid(row=row, column=2, pady=5)
-    tk.Label(master=master,text=" ").grid(row=row,column=3,pady=5)
+    tk.Label(master=master, text=" ").grid(row=row, column=3, pady=5)
     form_input.insert(tk.END, text)
     return form_input
 
 
-def get_text(form_input:tk.Entry|tk.Text) -> str:
+def get_text(form_input: tk.Entry | tk.Text) -> str:
     if type(form_input) is tk.Entry:
         return form_input.get().strip()
     elif type(form_input) is tk.Text:
@@ -43,7 +45,7 @@ def get_text(form_input:tk.Entry|tk.Text) -> str:
         return ""
 
 
-def tk_my_feed_info(conn:sqlite3.Connection) -> None:
+def tk_my_feed_info(conn: sqlite3.Connection) -> None:
     feed = db.get_feed_by_id(PublicBucketID, conn).unwrap()
     window = create_window_center("info - ipelago")
 
@@ -53,11 +55,11 @@ def tk_my_feed_info(conn:sqlite3.Connection) -> None:
     form = tk.Frame(relief=tk.SUNKEN, borderwidth=3)
     form.pack()
 
-    tk.Label(master=form,text=" ").grid(row=0,column=0)
-    title_input = create_input(form, "Title",feed.title, 1)
+    tk.Label(master=form, text=" ").grid(row=0, column=0)
+    title_input = create_input(form, "Title", feed.title, 1)
     link_input = create_input(form, "Link", feed.link, 2)
-    author_input = create_input(form, "Author",feed.author_name, 3)
-    tk.Label(master=form,text=" ").grid(row=4,column=0)
+    author_input = create_input(form, "Author", feed.author_name, 3)
+    tk.Label(master=form, text=" ").grid(row=4, column=0)
 
     buttons = tk.Frame()
     buttons.pack(pady=5)
@@ -66,7 +68,7 @@ def tk_my_feed_info(conn:sqlite3.Connection) -> None:
         title = get_text(title_input)
         link = get_text(link_input)
         author = get_text(author_input)
-        db.update_my_feed_info(link,title,author,conn).unwrap()
+        db.update_my_feed_info(link, title, author, conn).unwrap()
         window.quit()
         publish_show_info(conn)
 
