@@ -96,6 +96,20 @@ INSERT INTO feed (
 ) VALUES (:id, :link, :title, '', '', '');
 """
 
+Update_my_feed_info: Final[str] = """
+    UPDATE feed SET link=:link, title=:title, author_name=:author
+    WHERE id='Public'
+    """
+Update_my_feed_link: Final[str] = """
+    UPDATE feed SET link=:link WHERE id='Public'
+    """
+Update_my_feed_title: Final[str] = """
+    UPDATE feed SET title=:title WHERE id='Public'
+    """
+Update_my_feed_author: Final[str] = """
+    UPDATE feed SET author_name=:author WHERE id='Public'
+    """
+
 Get_subs_list: Final[
     str
 ] = """

@@ -1,6 +1,7 @@
 import sqlite3
 import tkinter as tk
 from ipelago.model import PublicBucketID, my_bucket
+from ipelago.publish import publish_show_info
 import ipelago.util as util
 import ipelago.db as db
 
@@ -32,6 +33,16 @@ def create_input(master:tk.Misc,label:str,text:str,row:int) -> tk.Entry:
     form_input.insert(tk.END, text)
     return form_input
 
+
+def get_text(form_input:tk.Entry|tk.Text) -> str:
+    if type(form_input) is tk.Entry:
+        return form_input.get().strip()
+    elif type(form_input) is tk.Text:
+        return form_input.get("1.0", tk.END).strip()
+    else:
+        return ""
+
+
 def tk_my_feed_info(conn:sqlite3.Connection) -> None:
     feed = db.get_feed_by_id(PublicBucketID, conn).unwrap()
     window = create_window_center("info - ipelago")
@@ -51,7 +62,15 @@ def tk_my_feed_info(conn:sqlite3.Connection) -> None:
     buttons = tk.Frame()
     buttons.pack(pady=5)
 
-    update_btn = tk.Button(master=buttons, text="Update")
+    def btn_click():
+        title = get_text(title_input)
+        link = get_text(link_input)
+        author = get_text(author_input)
+        db.update_my_feed_info(link,title,author,conn).unwrap()
+        window.quit()
+        publish_show_info(conn)
+
+    update_btn = tk.Button(master=buttons, text="Update", command=btn_click)
     update_btn.pack(side=tk.RIGHT, padx=5, pady=5)
 
     cancel_btn = tk.Button(master=buttons, text="Cancel", command=window.quit)
@@ -73,12 +92,12 @@ def tk_post_msg(pri: bool) -> None:
     form_input = tk.Text(master=frame, width=60, height=10, pady=5)
     form_input.pack()
 
-    def tk_click():
-        msg = form_input.get("1.0", tk.END)
+    def btn_click():
+        msg = get_text(form_input)
         util.post_msg(msg, my_bucket(pri))
         window.quit()
 
-    post_btn = tk.Button(master=frame, text="Post", command=tk_click)
+    post_btn = tk.Button(master=frame, text="Post", command=btn_click)
     post_btn.pack(side=tk.RIGHT, padx=5, pady=5, ipadx=5)
 
     cancel_btn = tk.Button(master=frame, text="Cancel", command=window.quit)

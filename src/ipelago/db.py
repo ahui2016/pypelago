@@ -373,3 +373,10 @@ def toggle_entry_bucket(
         conn, stmt.Update_entry_bucket, {"bucket": entry.bucket, "id": entry.entry_id}
     ).unwrap()
     return Ok(entry)
+
+def update_my_feed_info(
+    link:str,title:str,author:str, conn: sqlite3.Connection
+) -> Result[int, str]:
+    return connExec(conn, stmt.Update_my_feed_info, {
+        "link":link,"title":title,"author":author
+    })

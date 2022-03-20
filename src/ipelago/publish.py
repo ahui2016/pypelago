@@ -9,9 +9,10 @@ from jinja2 import (
     PackageLoader,
     select_autoescape,
 )
+from result import Result, Err, Ok
 
 from ipelago.db import get_cfg, get_feed_by_id, get_public_limit
-from ipelago.model import PublicBucketID
+from ipelago.model import OK, PublicBucketID
 
 output_folder: Final[str] = "public"
 
@@ -59,6 +60,17 @@ def publish_html(conn: sqlite3.Connection, force:bool) -> None:
     output_file = Path(output_folder).joinpath(filename)
     output_file.write_text(index_html, encoding="utf-8")
     copy_static_files(index_tmpl)
+
+
+def check_before_publish(conn:sqlite3.Connection) -> Result[str, str]:
+    feed = get_feed_by_id(PublicBucketID, conn).unwrap()
+    if feed.link == "" or feed.title == "" or feed.author_name == "":
+        return Err("""
+第一次发布需要使用 'ago publish -g' 命令录入作者名称等信息。
+另外也可使用 'ago publish --set-author' 等命令。
+如有疑问可使用 'ago publish -h' 获取帮助。
+""")
+    return OK
 
 
 def publish_show_info(conn: sqlite3.Connection) -> None:

@@ -2,11 +2,12 @@ from typing import Any, cast
 import click
 import pyperclip
 from result import Result
-import ipelago.db as db
+from ipelago import stmt
+from ipelago import db
 from ipelago.gui import tk_my_feed_info, tk_post_msg
 from ipelago.model import AppConfig, Bucket, my_bucket
-from ipelago.publish import publish_html, publish_show_info
-import ipelago.util as util
+from ipelago.publish import check_before_publish, publish_html, publish_show_info
+from ipelago import util
 from . import (
     __version__,
     __package_name__,
@@ -319,17 +320,31 @@ def tl(
     "gui", "-g", "--gui-info", is_flag=True, help="Open a GUI window to view/edit info."
 )
 @click.option("info", "-info", "--info", is_flag=True, help="Show informations about my feed.")
+@click.option("link", "--set-link", help="Set the RSS link of my feed.")
+@click.option("title", "--set-title", help="Set the title of my feed.")
+@click.option("author", "--set-author", help="Set the author of my feed.")
 @click.option("force", "-force", "--force", is_flag=True, help="Confirm overwrite.")
 @click.pass_context
-def publish(ctx: click.Context,gui:bool,info:bool, force: bool):
+def publish(ctx: click.Context,gui:bool, link:str, title:str, author:str,  info:bool, force: bool):
     check_init(ctx)
 
     with db.connect_db() as conn:
         if gui:
+            # TODO: 无法使用 tkinter 的情况。
             tk_my_feed_info(conn)
         elif info:
             publish_show_info(conn)
+        elif title:
+            db.connExec(conn, stmt.Update_my_feed_title, { "title":title}).unwrap()
+            publish_show_info(conn)
+        elif link:
+            db.connExec(conn, stmt.Update_my_feed_link, { "link":link}).unwrap()
+            publish_show_info(conn)
+        elif author:
+            db.connExec(conn, stmt.Update_my_feed_author, { "author":author}).unwrap()
+            publish_show_info(conn)
         else:
+            check(ctx, check_before_publish(conn), False)
             publish_html(conn, force)
 
     ctx.exit()
