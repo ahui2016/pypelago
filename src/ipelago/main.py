@@ -3,9 +3,9 @@ import click
 import pyperclip
 from result import Result
 import ipelago.db as db
-from ipelago.gui import tk_post_msg
+from ipelago.gui import tk_my_feed_info, tk_post_msg
 from ipelago.model import AppConfig, Bucket, my_bucket
-from ipelago.publish import publish_html
+from ipelago.publish import publish_html, publish_show_info
 import ipelago.util as util
 from . import (
     __version__,
@@ -315,18 +315,22 @@ def tl(
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
+@click.option(
+    "gui", "-g", "--gui-info", is_flag=True, help="Open a GUI window to view/edit info."
+)
+@click.option("info", "-info", "--info", is_flag=True, help="Show informations about my feed.")
 @click.option("force", "-force", "--force", is_flag=True, help="Confirm overwrite.")
 @click.pass_context
-def publish(ctx: click.Context, force: bool):
+def publish(ctx: click.Context,gui:bool,info:bool, force: bool):
     check_init(ctx)
 
-    if not force:
-        click.echo("Error: require '-force' to publish.")
-        click.echo("请使用 '-force' 参数确认覆盖当前目录的 public 文件夹的内容。")
-        ctx.exit()
-
     with db.connect_db() as conn:
-        publish_html(conn)
+        if gui:
+            tk_my_feed_info(conn)
+        elif info:
+            publish_show_info(conn)
+        else:
+            publish_html(conn, force)
 
     ctx.exit()
 

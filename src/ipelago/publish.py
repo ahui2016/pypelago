@@ -33,7 +33,12 @@ def copy_static_files(tmpl: Template) -> None:
             shutil.copyfile(src, dst)
 
 
-def publish_html(conn: sqlite3.Connection) -> None:
+def publish_html(conn: sqlite3.Connection, force:bool) -> None:
+    if not force:
+        print("Error: require '-force' to publish.")
+        print("请使用 '-force' 参数确认覆盖当前目录的 public 文件夹的内容。")
+        return
+
     cfg = get_cfg(conn).unwrap()
     entries = get_public_limit("", cfg["web_page_n"], conn)
     feed = get_feed_by_id(PublicBucketID, conn).unwrap()
@@ -54,3 +59,11 @@ def publish_html(conn: sqlite3.Connection) -> None:
     output_file = Path(output_folder).joinpath(filename)
     output_file.write_text(index_html, encoding="utf-8")
     copy_static_files(index_tmpl)
+
+
+def publish_show_info(conn: sqlite3.Connection) -> None:
+    feed = get_feed_by_id(PublicBucketID, conn).unwrap()
+    print("通过 HTML/RSS 对外发布微博客时，对访客显示以下信息：")
+    print(f'[Title] {feed.title}')
+    print(f'[RSS Link] {feed.link}')
+    print(f'[Author] {feed.author_name}')
