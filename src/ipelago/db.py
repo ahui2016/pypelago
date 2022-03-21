@@ -270,8 +270,10 @@ def check_before_update(
             ):
                 return Ok(feed)
             else:
-                return Err("Too Many Requests (默认每天最多拉取一次)\
-                    \n可使用 '-force' 参数强制更新。")
+                return Err(
+                    "Too Many Requests (默认每天最多拉取一次)\
+                    \n可使用 '-force' 参数强制更新。"
+                )
 
 
 def insert_entries(entries: list[FeedEntry], conn: sqlite3.Connection) -> None:

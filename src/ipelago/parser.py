@@ -60,15 +60,20 @@ def get_text_from_soup(soup, sep: str = "\n") -> str:
 
 
 def rss_to_entries(
-    feed_id: str, feed_title: str, parser_dict: FeedParserDict, title: bool
+    feed_id: str,
+    feed_title: str,
+    parser_dict: FeedParserDict,
+    has_title: bool,
+    has_summary: bool,
 ) -> list[FeedEntry]:
     entries = []
     for item in parser_dict.entries:
         published = PubDateToRFC3339(item.published)
         link = item.get("link")
-        contents = item.title + "\n" if title else ""
+        contents = item.title + "\n" if has_title else ""
 
-        soup = BeautifulSoup(item.description, "html.parser")
+        summary = item['content'][1].value if has_summary else item.description
+        soup = BeautifulSoup(summary, "html.parser")
         body = contents + get_text_from_soup(soup)
         msg = FeedEntry(
             entry_id=rand_date_id(),
@@ -90,9 +95,11 @@ def feed_to_entries(
     print(f"Using parser: {parser}")
     match parser:
         case MyParser.HasTitle.name:
-            return rss_to_entries(feed_id, feed_title, parser_dict, True)
+            return rss_to_entries(feed_id, feed_title, parser_dict, True, False)
+        case MyParser.HasSummary.name:
+            return rss_to_entries(feed_id, feed_title, parser_dict, False, True)
         case _:
-            return rss_to_entries(feed_id, feed_title, parser_dict, False)
+            return rss_to_entries(feed_id, feed_title, parser_dict, False, False)
 
 
 """

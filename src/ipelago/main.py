@@ -367,7 +367,7 @@ def publish(
     "parser",
     "-p",
     "--parser",
-    type=click.Choice(["Base", "HasTitle", "HasSumary"]),
+    type=click.Choice(["Base", "HasTitle", "HasSummary"]),
     help="Select a parser.",
 )
 @click.option(
