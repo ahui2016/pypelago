@@ -53,6 +53,16 @@ def print_my_next_msg(conn: sqlite3.Connection) -> None:
             db.update_cfg(cfg, conn)
             print_my_msg(msg)
 
+def my_cursor_goto(date_prefix:str, conn: sqlite3.Connection) -> None:
+    cfg = db.get_cfg(conn).unwrap()
+    match db.my_cursor_goto(date_prefix, conn):
+        case Err(e):
+            print(e)
+        case Ok(msg):
+            cfg["tl_cursor"] = msg.published
+            db.update_cfg(cfg, conn)
+            print_my_msg(msg)
+
 
 def print_news(msg: FeedEntry, show_link: bool, short_id: bool) -> None:
     entry_id = msg.entry_id[:4] if short_id else msg.entry_id
@@ -88,7 +98,7 @@ def print_entries(
     printer: Callable[[FeedEntry, bool], None],
 ) -> None:
     if not entries:
-        print("No message. (找不到该命令指定的消息)")
+        print("Not Found. (找不到该命令指定的消息)")
         return
     for entry in entries:
         printer(entry, show_link)

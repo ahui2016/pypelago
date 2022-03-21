@@ -245,6 +245,7 @@ def toggle(ctx: click.Context, entry_id: str):
     "first", "-first", "--first", is_flag=True, help="Read my latest message."
 )
 @click.option("next", "-next", "--next", is_flag=True, help="Read my next message.")
+@click.option("goto_date", "-go", "--goto", help="Move the cursor to a date(YYYY-MM-DD)")
 @click.option("today", "-today", "--today", is_flag=True, help="Read today's messages.")
 @click.option(
     "yesterday",
@@ -268,6 +269,7 @@ def tl(
     ctx: click.Context,
     next: bool,
     first: bool,
+    goto_date: str,
     today: bool,
     yesterday: bool,
     pub: bool,
@@ -277,13 +279,15 @@ def tl(
 ):
     """Timeline: Read my messages. (阅读自己发布的消息)
 
-    Example 1: ago tl        (阅读下一条消息)
+    Examples:
+    
+    ago tl        (阅读下一条消息)
 
-    Example 2: ago tl -first (阅读最新一条消息)
+    ago tl -first (阅读最新一条消息)
 
-    Example 3: ago tl -today (阅读今天的消息，默认上限 9 条)
+    ago tl -today (阅读今天的消息，默认上限 9 条)
 
-    Example 3: ago tl -today -limit 30 (设定上限为 30 条消息)
+    ago tl -today -limit 30 (设定上限为 30 条消息)
     """
     check_init(ctx)
 
@@ -303,6 +307,8 @@ def tl(
             util.print_my_today(limit, buckets, conn)
         elif yesterday:
             util.print_my_yesterday(limit, buckets, conn)
+        elif goto_date:
+            util.my_cursor_goto(goto_date, conn)
         elif first:
             zen_mode(cfg, zen)
             cfg["tl_cursor"] = ""

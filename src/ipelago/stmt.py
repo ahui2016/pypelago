@@ -169,35 +169,44 @@ INSERT INTO entry (
 );
 """
 
+# first 是指按照消息发布时间最新的信息。
 Get_my_first_entry: Final[
     str
 ] = """
-SELECT * FROM entry WHERE bucket='Public' or bucket='Private'
-ORDER BY published DESC LIMIT 1;
-"""
+    SELECT * FROM entry WHERE bucket='Public' or bucket='Private'
+    ORDER BY published DESC LIMIT 1;
+    """
 
 Get_my_next_entry: Final[
     str
 ] = """
-SELECT * FROM entry
-WHERE (bucket='Public' or bucket='Private') and published < :published
-ORDER BY published DESC LIMIT 1;
-"""
+    SELECT * FROM entry
+    WHERE (bucket='Public' or bucket='Private') and published < :published
+    ORDER BY published DESC LIMIT 1;
+    """
+
+My_cursor_goto: Final[
+    str
+] = """
+    SELECT * FROM entry
+    WHERE (bucket='Public' or bucket='Private') and published > :published
+    ORDER BY published DESC LIMIT 1;
+    """
 
 Get_entries_limit: Final[
     str
 ] = """
-SELECT * FROM entry WHERE bucket=:bucket
-ORDER BY published DESC LIMIT :limit;
-"""
+    SELECT * FROM entry WHERE bucket=:bucket
+    ORDER BY published DESC LIMIT :limit;
+    """
 
 Get_news_next_entry: Final[
     str
 ] = """
-SELECT * FROM entry
-WHERE bucket='News' and published < :published
-ORDER BY published DESC LIMIT 1;
-"""
+    SELECT * FROM entry
+    WHERE bucket='News' and published < :published
+    ORDER BY published DESC LIMIT 1;
+    """
 
 Get_entry_by_id: Final[
     str
