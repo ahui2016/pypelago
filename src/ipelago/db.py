@@ -217,6 +217,24 @@ def get_by_date_buckets(
     return result
 
 
+def conut_by_date_buckets(
+    date: str,
+    limit: int,
+    buckets: list[str],
+    conn: sqlite3.Connection,
+) -> int:
+    total = 0
+    for bucket in buckets:
+        row = conn.execute(
+            stmt.Count_by_date,
+            {"bucket": bucket, "published": date + "%", "limit": limit},
+        ).fetchone()
+        if row:
+            total += row[0]
+
+    return total
+
+
 def get_public_limit(
     cursor: str, limit: int, conn: sqlite3.Connection
 ) -> list[FeedEntry]:

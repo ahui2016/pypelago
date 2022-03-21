@@ -248,6 +248,7 @@ def toggle(ctx: click.Context, entry_id: str):
     help="Read yesterday's messages.",
 )
 @click.option("date_prefix", "-date", "--date", help="Read messages of a date.")
+@click.option("count", "-count", "--count", help="Count messages of a date.")
 @click.option(
     "pub", "-pub", "--public", is_flag=True, help="Read my public messages only."
 )
@@ -267,6 +268,7 @@ def tl(
     today: bool,
     yesterday: bool,
     date_prefix: str,
+    count: str,
     pub: bool,
     pri: bool,
     limit: int,
@@ -304,6 +306,8 @@ def tl(
             util.print_my_yesterday(limit, buckets, conn)
         elif date_prefix:
             util.print_my_entries(date_prefix, limit, buckets, conn)
+        elif count:
+            util.count_my_entries(count, limit, buckets, conn)
         elif goto_date:
             util.my_cursor_goto(goto_date, conn)
         elif first:

@@ -236,6 +236,14 @@ Get_by_date: Final[
     ORDER BY published DESC LIMIT :limit;
     """
 
+Count_by_date: Final[
+    str
+] = """
+    SELECT count(*) FROM entry
+    WHERE bucket=:bucket and published LIKE :published
+    ORDER BY published DESC LIMIT :limit;
+    """
+
 Move_entry_to_fav: Final[
     str
 ] = """

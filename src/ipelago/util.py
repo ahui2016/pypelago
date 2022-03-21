@@ -115,6 +115,13 @@ def print_my_entries(
     print_entries(entries, False, print_my_msg)
 
 
+def count_my_entries(
+    prefix: str, limit: int, buckets: list[str], conn: sqlite3.Connection
+) -> None:
+    n = db.conut_by_date_buckets(prefix, limit, buckets, conn)
+    print(f"[{prefix}]: {n} message(s)")
+
+
 def print_my_today(limit: int, buckets: list[str], conn: sqlite3.Connection) -> None:
     prefix = arrow.now().format("YYYY-MM-DD")
     print_my_entries(prefix, limit, buckets, conn)
