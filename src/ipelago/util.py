@@ -1,6 +1,7 @@
 import sqlite3
 from typing import Callable, Final
 import arrow
+import pyperclip
 import requests
 import feedparser
 from feedparser import FeedParserDict
@@ -18,6 +19,13 @@ from ipelago.model import (
 from ipelago.parser import feed_to_entries
 
 RequestsTimeout: Final[int] = 5
+
+
+def copytext(text: str) -> None:
+    try:
+        pyperclip.copy(text)
+    except Exception:
+        pass
 
 
 def requests_get(url: str, conn: sqlite3.Connection):
@@ -241,6 +249,18 @@ def move_to_fav(prefix: str, conn: sqlite3.Connection) -> None:
             newid = db.move_to_fav(entry.entry_id, conn)
             fav_entry = db.get_entry_by_prefix(newid, conn)[0]
             print_fav_entry(fav_entry)
+
+
+def copy_msg_link(prefix: str, link:bool, conn: sqlite3.Connection) -> None:
+    match get_entry_by_prefix(prefix, conn):
+        case Err(e):
+            print(e)
+        case Ok(entry):
+            if link:
+                print(entry.link)
+                copytext(entry.link)
+            else:
+                copytext(entry.content)
 
 
 def toggle_entry_bucket(prefix: str) -> None:

@@ -477,5 +477,23 @@ def like(ctx: click.Context, entry_id: str):
         util.move_to_fav(entry_id, conn)
 
 
+@cli.command(context_settings=CONTEXT_SETTINGS)
+@click.argument("entry_id", nargs=1)
+@click.option("link", "-link", "--link", is_flag=True, help="Copy the link of an entry.")
+@click.pass_context
+def copy(ctx: click.Context, entry_id: str, link: bool):
+    """Copy the content/link of an entry. (复制消息内容或消息链接)
+
+    Examples:
+
+    ago copy 97ur (复制 id 为 97ur 的消息的内容)
+
+    ago copy 97ur -link (复制 id 为 97ur 的消息的链接，是指消息本身的链接)
+    """
+    with db.connect_db() as conn:
+        util.copy_msg_link(entry_id, link, conn)
+    ctx.exit()
+
+
 if __name__ == "__main__":
     cli(obj={})
