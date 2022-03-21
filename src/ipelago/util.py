@@ -49,7 +49,7 @@ def print_my_next_msg(conn: sqlite3.Connection) -> None:
 def print_news(msg: FeedEntry, show_link: bool, short_id: bool) -> None:
     entry_id = msg.entry_id[:4] if short_id else msg.entry_id
     date = arrow.get(msg.published).format("YYYY-MM-DD")
-    title = f"[{entry_id}] ({msg.feed_id}) {date}"
+    title = f"[{entry_id}] ({date}) {msg.feed_name}"
     print(f"{title}\n{msg.content}")
     if show_link and msg.link:
         print(f"[link] {msg.link}")

@@ -58,26 +58,37 @@ Delete_feed: Final[
 Update_feed_id: Final[
     str
 ] = """
-UPDATE feed SET id=:newid WHERE id=:oldid;
-"""
+    UPDATE feed SET id=:newid WHERE id=:oldid;
+    """
 
 Update_entry_feed_id: Final[
     str
 ] = """
-UPDATE entry SET feed_id=:newid WHERE feed_id=:oldid;
-"""
+    UPDATE entry SET feed_id=:newid WHERE feed_id=:oldid;
+    """
+Update_feed_title: Final[
+    str
+] = """
+    UPDATE feed SET title=:title WHERE id=:id;
+    """
+
+Update_entry_feed_name: Final[
+    str
+] = """
+    UPDATE entry SET feed_name=:feed_name WHERE feed_id=:feed_id;
+    """
 
 Get_feed_id: Final[
     str
 ] = """
-SELECT id FROM feed WHERE id=?;
-"""
+    SELECT id FROM feed WHERE id=?;
+    """
 
 Get_feed_link: Final[
     str
 ] = """
-SELECT link FROM feed WHERE link=?;
-"""
+    SELECT link FROM feed WHERE link=?;
+    """
 
 Insert_feed: Final[
     str

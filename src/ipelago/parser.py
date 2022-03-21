@@ -72,7 +72,7 @@ def rss_to_entries(
         link = item.get("link")
         contents = item.title + "\n" if has_title else ""
 
-        summary = item['content'][1].value if has_summary else item.description
+        summary = item["content"][1].value if has_summary else item.description
         soup = BeautifulSoup(summary, "html.parser")
         body = contents + get_text_from_soup(soup)
         msg = FeedEntry(

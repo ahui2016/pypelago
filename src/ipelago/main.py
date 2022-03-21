@@ -379,7 +379,8 @@ def publish(
 )
 @click.option("update", "-u", "--update", help="Update a feed.")
 @click.option("feed_id", "-id", "--id", help="Show messages of a feed.")
-@click.option("new_id", "--new-id", help="Change the id of a feed.")
+@click.option("new_id", "--set-id", help="Change the id of a feed.")
+@click.option("new_name", "--set-name", help="Change the name of a feed.")
 @click.option("delete", "-delete", "--delete", help="Delete a feed (specify by id).")
 @click.option(
     "force", "-force", "--force", is_flag=True, help="Force to update or delete."
@@ -398,6 +399,7 @@ def news(
     update: str,
     feed_id: str,
     new_id: str,
+    new_name:str,
     delete: str,
     zen: bool,
 ):
@@ -419,10 +421,15 @@ def news(
         elif update:
             util.update_one_feed(update, parser, force, conn)
         elif new_id:
-            """这是既有 new_id 也有 feed_id 的情形"""
             check_id(ctx, feed_id)
-            check(ctx, db.update_feed_id(feed_id, new_id, conn), False)
+            """这是既有 new_id 也有 feed_id 的情形"""
+            check(ctx, db.update_feed_id(new_id, feed_id, conn), False)
             util.print_subs_list(conn, new_id)
+        elif new_name:
+            check_id(ctx, feed_id)
+            """这是既有 new_name 也有 feed_id 的情形"""
+            check(ctx, db.update_feed_title(new_name, feed_id, conn), False)
+            util.print_subs_list(conn, feed_id)
         elif feed_id:
             """这是只有 feed_id, 没有 new_id 的情形"""
             entries = db.get_news_by_feed(feed_id, limit, conn)
