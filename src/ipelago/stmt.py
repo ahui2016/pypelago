@@ -223,18 +223,18 @@ Get_entry_by_id_prefix: Final[
 Get_public_limit: Final[
     str
 ] = """
-SELECT * FROM entry
-WHERE bucket='Public' and published > :published
-ORDER BY published LIMIT :limit;
-"""
+    SELECT * FROM entry
+    WHERE bucket='Public' and published > :published
+    ORDER BY published LIMIT :limit;
+    """
 
 Get_by_date: Final[
     str
 ] = """
-SELECT * FROM entry
-WHERE bucket=:bucket and published LIKE :published
-ORDER BY published DESC LIMIT :limit;
-"""
+    SELECT * FROM entry
+    WHERE bucket=:bucket and published LIKE :published
+    ORDER BY published DESC LIMIT :limit;
+    """
 
 Move_entry_to_fav: Final[
     str

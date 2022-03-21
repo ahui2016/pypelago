@@ -53,7 +53,8 @@ def print_my_next_msg(conn: sqlite3.Connection) -> None:
             db.update_cfg(cfg, conn)
             print_my_msg(msg)
 
-def my_cursor_goto(date_prefix:str, conn: sqlite3.Connection) -> None:
+
+def my_cursor_goto(date_prefix: str, conn: sqlite3.Connection) -> None:
     cfg = db.get_cfg(conn).unwrap()
     match db.my_cursor_goto(date_prefix, conn):
         case Err(e):
@@ -261,7 +262,7 @@ def move_to_fav(prefix: str, conn: sqlite3.Connection) -> None:
             print_fav_entry(fav_entry)
 
 
-def copy_msg_link(prefix: str, link:bool, conn: sqlite3.Connection) -> None:
+def copy_msg_link(prefix: str, link: bool, conn: sqlite3.Connection) -> None:
     match get_entry_by_prefix(prefix, conn):
         case Err(e):
             print(e)

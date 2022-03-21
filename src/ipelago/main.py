@@ -178,17 +178,12 @@ def init_command(ctx: click.Context, name: str):
 @click.option(
     "gui", "-g", "--gui", is_flag=True, help="Open a GUI window for text input."
 )
-@click.option(
-    "toggle", "-toggle", "--toggle", help="Toggle Public/Private of an entry."
-)
 @click.argument("msg", nargs=-1)
 @click.option(
     "pri", "-pri", "--private", is_flag=True, help="Specify the private island"
 )
 @click.pass_context
-def post(
-    ctx: click.Context, msg: Any, toggle: str, filename: str, gui: bool, pri: bool
-):
+def post(ctx: click.Context, msg: Any, filename: str, gui: bool, pri: bool):
     """Post a message. (发送消息)
 
     Examples:
@@ -203,10 +198,6 @@ def post(
 
     if gui:
         tk_post_msg(pri)
-        ctx.exit()
-
-    if toggle:
-        util.toggle_entry_bucket(toggle)
         ctx.exit()
 
     if filename:
@@ -231,7 +222,7 @@ def post(
 @click.argument("entry_id", nargs=1)
 @click.pass_context
 def toggle(ctx: click.Context, entry_id: str):
-    """Same as 'ago post -toggle'
+    """Toggle Public/Private of an entry.
 
     切换一条消息的公开/隐私状态。
     """
@@ -245,7 +236,9 @@ def toggle(ctx: click.Context, entry_id: str):
     "first", "-first", "--first", is_flag=True, help="Read my latest message."
 )
 @click.option("next", "-next", "--next", is_flag=True, help="Read my next message.")
-@click.option("goto_date", "-go", "--goto", help="Move the cursor to a date(YYYY-MM-DD)")
+@click.option(
+    "goto_date", "-go", "--goto", help="Move the cursor to a date(YYYY-MM-DD)"
+)
 @click.option("today", "-today", "--today", is_flag=True, help="Read today's messages.")
 @click.option(
     "yesterday",
@@ -254,6 +247,7 @@ def toggle(ctx: click.Context, entry_id: str):
     is_flag=True,
     help="Read yesterday's messages.",
 )
+@click.option("date_prefix", "-date", "--date", help="Read messages of a date.")
 @click.option(
     "pub", "-pub", "--public", is_flag=True, help="Read my public messages only."
 )
@@ -272,6 +266,7 @@ def tl(
     goto_date: str,
     today: bool,
     yesterday: bool,
+    date_prefix: str,
     pub: bool,
     pri: bool,
     limit: int,
@@ -280,7 +275,7 @@ def tl(
     """Timeline: Read my messages. (阅读自己发布的消息)
 
     Examples:
-    
+
     ago tl        (阅读下一条消息)
 
     ago tl -first (阅读最新一条消息)
@@ -307,6 +302,8 @@ def tl(
             util.print_my_today(limit, buckets, conn)
         elif yesterday:
             util.print_my_yesterday(limit, buckets, conn)
+        elif date_prefix:
+            util.print_my_entries(date_prefix, limit, buckets, conn)
         elif goto_date:
             util.my_cursor_goto(goto_date, conn)
         elif first:
@@ -405,7 +402,7 @@ def news(
     update: str,
     feed_id: str,
     new_id: str,
-    new_name:str,
+    new_name: str,
     delete: str,
     zen: bool,
 ):
@@ -485,7 +482,9 @@ def like(ctx: click.Context, entry_id: str):
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("entry_id", nargs=1)
-@click.option("link", "-link", "--link", is_flag=True, help="Copy the link of an entry.")
+@click.option(
+    "link", "-link", "--link", is_flag=True, help="Copy the link of an entry."
+)
 @click.pass_context
 def copy(ctx: click.Context, entry_id: str, link: bool):
     """Copy the content/link of an entry. (复制消息内容或消息链接)
