@@ -373,7 +373,26 @@ def publish(
     ctx.exit()
 
 
+def toggle_link(ctx: click.Context, _, value):
+    if not value or ctx.resilient_parsing:
+        return
+    with db.connect_db() as conn:
+        cfg = db.get_cfg(conn).unwrap()
+        cfg["news_show_link"] = not cfg["news_show_link"]
+        click.echo(f'[Always Show Link] {cfg["news_show_link"]}')
+        db.update_cfg(cfg, conn)
+
+    ctx.exit()
+
+
 @cli.command(context_settings=CONTEXT_SETTINGS)
+@click.option(
+    "--toggle-link",
+    is_flag=True,
+    help="Toggle always show link.",
+    expose_value=False,
+    callback=toggle_link,
+)
 @click.option("show_list", "-l", "--list", is_flag=True, help="List all feeds.")
 @click.option("follow", "-follow", "--follow", help="Subscribe a feed.")
 @click.option(
