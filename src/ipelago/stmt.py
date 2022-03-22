@@ -190,7 +190,14 @@ My_cursor_goto: Final[
 ] = """
     SELECT * FROM entry
     WHERE (bucket='Public' or bucket='Private') and published > :published
-    ORDER BY published DESC LIMIT 1;
+    ORDER BY published LIMIT 1;
+    """
+News_cursor_goto: Final[
+    str
+] = """
+    SELECT * FROM entry
+    WHERE bucket='News' and published > :published
+    ORDER BY published LIMIT 1;
     """
 
 Get_entries_limit: Final[

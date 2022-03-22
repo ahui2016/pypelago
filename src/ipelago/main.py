@@ -388,10 +388,13 @@ def publish(
 )
 @click.option("next", "-next", "--next", is_flag=True, help="Read the next message.")
 @click.option(
+    "goto_date", "-go", "--goto", help="Move the cursor to a date(YYYY-MM-DD)"
+)
+@click.option(
     "limit", "-limit", "--limit", type=int, help="Limit the number of messages."
 )
 @click.option("update", "-u", "--update", help="Update a feed.")
-@click.option("feed_id", "-id", "--id", help="Show messages of a feed.")
+@click.option("feed_id", "-feed", "--feed", help="Show messages of a feed.")
 @click.option("new_id", "--set-id", help="Change the id of a feed.")
 @click.option("new_name", "--set-name", help="Change the name of a feed.")
 @click.option("delete", "-delete", "--delete", help="Delete a feed (specify by id).")
@@ -407,6 +410,7 @@ def news(
     show_list: bool,
     first: bool,
     next: bool,
+    goto_date:str,
     limit: int,
     force: bool,
     update: str,
@@ -461,6 +465,8 @@ def news(
                 click.echo("Error: require '-force' to delete a feed.")
                 ctx.exit()
             click.echo(db.delete_feed(delete, conn))
+        elif goto_date:
+            util.news_cursor_goto(goto_date, conn)
         elif first:
             zen_mode(cfg, zen)
             cfg["news_cursor"] = ""

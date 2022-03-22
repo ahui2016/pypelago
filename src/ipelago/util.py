@@ -65,6 +65,15 @@ def my_cursor_goto(date_prefix: str, conn: sqlite3.Connection) -> None:
             db.update_cfg(cfg, conn)
             print_my_msg(msg)
 
+def news_cursor_goto(date_prefix: str, conn: sqlite3.Connection) -> None:
+    cfg = db.get_cfg(conn).unwrap()
+    match db.news_cursor_goto(date_prefix, conn):
+        case Err(e):
+            print(e)
+        case Ok(msg):
+            cfg["news_cursor"] = msg.published
+            db.update_cfg(cfg, conn)
+            print_news_short_id(msg, cfg["news_show_link"])
 
 def print_news(msg: FeedEntry, show_link: bool, short_id: bool) -> None:
     entry_id = msg.entry_id[:4] if short_id else msg.entry_id

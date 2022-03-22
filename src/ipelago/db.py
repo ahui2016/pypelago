@@ -174,6 +174,14 @@ def my_cursor_goto(
 
     return Ok(new_entry_from(row))
 
+def news_cursor_goto(
+    date_prefix: str, conn: sqlite3.Connection
+) -> Result[FeedEntry, str]:
+    row = conn.execute(stmt.News_cursor_goto, {"published": date_prefix}).fetchone()
+    if not row:
+        return Err("Not Found. (找不到该命令指定的消息)")
+
+    return Ok(new_entry_from(row))
 
 def get_news_next(cursor: str, conn: sqlite3.Connection) -> Result[FeedEntry, str]:
     row = conn.execute(stmt.Get_news_next_entry, {"published": cursor}).fetchone()
