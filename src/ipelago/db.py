@@ -203,23 +203,21 @@ def get_by_date(
     return result
 
 
-def get_by_date_buckets(
+def get_by_date_my_buckets(
     date: str,
     limit: int,
-    buckets: list[str],
     conn: sqlite3.Connection,
 ) -> list[FeedEntry]:
     result: list[FeedEntry] = []
-    for bucket in buckets:
-        entries = get_by_date(date, limit, bucket, conn)
-        result += entries
-    result.sort(key=lambda x: x.published, reverse=True)
+    for row in conn.execute(
+        stmt.Get_by_date_my_buckets, {"published": date + "%", "limit": limit}
+    ):
+        result.append(new_entry_from(row))
     return result
 
 
 def conut_by_date_buckets(
     date: str,
-    limit: int,
     buckets: list[str],
     conn: sqlite3.Connection,
 ) -> int:
@@ -227,7 +225,7 @@ def conut_by_date_buckets(
     for bucket in buckets:
         row = conn.execute(
             stmt.Count_by_date,
-            {"bucket": bucket, "published": date + "%", "limit": limit},
+            {"bucket": bucket, "published": date + "%"},
         ).fetchone()
         if row:
             total += row[0]
@@ -273,7 +271,18 @@ def get_subs_list(conn: sqlite3.Connection, feed_id: str = "") -> list[Feed]:
     return subs_list
 
 
-def check_before_update(
+def check_before_update_all(feed: Feed) -> Result[str, str]:
+    updated = arrow.get(feed.updated, RFC3339)
+    if updated.int_timestamp + UpdateRateLimit < arrow.now().int_timestamp:
+        return OK
+    else:
+        return Err(
+            f"Checking {feed.title} ... Info: Too many requests.\n"
+            f"可使用 'ago news -force -u {feed.feed_id}' 强制更新。\n"
+        )
+
+
+def check_before_update_one(
     feed_id: str, parser: str, force: bool, conn: sqlite3.Connection
 ) -> Result[Feed, str]:
     if feed_id in [PublicBucketID, PrivateBucketID, FavBucketID]:

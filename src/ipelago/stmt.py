@@ -236,12 +236,20 @@ Get_by_date: Final[
     ORDER BY published DESC LIMIT :limit;
     """
 
+Get_by_date_my_buckets: Final[
+    str
+] = """
+    SELECT * FROM entry
+    WHERE (bucket='Public' or bucket='Private') and published LIKE :published
+    ORDER BY published DESC LIMIT :limit;
+    """
+
 Count_by_date: Final[
     str
 ] = """
     SELECT count(*) FROM entry
     WHERE bucket=:bucket and published LIKE :published
-    ORDER BY published DESC LIMIT :limit;
+    ORDER BY published DESC;
     """
 
 Move_entry_to_fav: Final[

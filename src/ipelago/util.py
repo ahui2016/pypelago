@@ -10,6 +10,7 @@ import ipelago.db as db
 import ipelago.stmt as stmt
 from ipelago.model import (
     Bucket,
+    Feed,
     FeedEntry,
     MyParser,
     ShortStrSizeLimit,
@@ -108,17 +109,15 @@ def print_entries(
 def print_my_entries(
     prefix: str, limit: int, buckets: list[str], conn: sqlite3.Connection
 ) -> None:
-    if len(buckets) > 1:
-        entries = db.get_by_date_buckets(prefix, limit, buckets, conn)
+    if not buckets:
+        entries = db.get_by_date_my_buckets(prefix, limit, conn)
     else:
         entries = db.get_by_date(prefix, limit, buckets[0], conn)
     print_entries(entries, False, print_my_msg)
 
 
-def count_my_entries(
-    prefix: str, limit: int, buckets: list[str], conn: sqlite3.Connection
-) -> None:
-    n = db.conut_by_date_buckets(prefix, limit, buckets, conn)
+def count_my_entries(prefix: str, buckets: list[str], conn: sqlite3.Connection) -> None:
+    n = db.conut_by_date_buckets(prefix, buckets, conn)
     print(f"[{prefix}]: {n} message(s)")
 
 
@@ -186,29 +185,42 @@ def subscribe(link: str, parser: str, conn: sqlite3.Connection) -> None:
             feed_title = utf8_byte_truncate(parser_dict.feed.title, ShortStrSizeLimit)
             feed_id = db.subscribe_feed(link, feed_title, parser, conn)
             print_subs_list(conn, feed_id)
-            entries = feed_to_entries(feed_id, feed_title, parser, parser_dict)
+            entries = feed_to_entries(feed_id, feed_title, parser, parser_dict, True)
             db.insert_entries(entries, conn)
+            print("OK.")
+
+
+def retrieve_and_update(feed: Feed, verbose: bool, conn: sqlite3.Connection) -> None:
+    match retrieve_feed(feed.link, conn):
+        case Err(e):
+            print(e)
+            return
+        case Ok(parser_dict):
+            entries = feed_to_entries(
+                feed.feed_id, feed.title, feed.parser, parser_dict, verbose
+            )
+            db.update_entries(feed.feed_id, entries, conn)
             print("OK.")
 
 
 def update_one_feed(
     feed_id: str, parser: str, force: bool, conn: sqlite3.Connection
 ) -> None:
-    match db.check_before_update(feed_id, parser, force, conn):
+    match db.check_before_update_one(feed_id, parser, force, conn):
         case Err(e):
             print(e)
-            return
         case Ok(feed):
-            match retrieve_feed(feed.link, conn):
-                case Err(e):
-                    print(e)
-                    return
-                case Ok(parser_dict):
-                    entries = feed_to_entries(
-                        feed_id, feed.title, feed.parser, parser_dict
-                    )
-                    db.update_entries(feed_id, entries, conn)
-                    print("OK.")
+            retrieve_and_update(feed, True, conn)
+
+
+def update_all_feeds(conn: sqlite3.Connection) -> None:
+    sl = db.get_subs_list(conn)
+    for feed in sl:
+        match db.check_before_update_all(feed):
+            case Err(e):
+                print(e)
+            case Ok():
+                retrieve_and_update(feed, False, conn)
 
 
 # 如果指定 feed_id, 则只显示指定的一个源，否则显示全部源的信息。

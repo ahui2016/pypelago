@@ -40,6 +40,13 @@ def check_id(ctx: click.Context, item_id: str | None) -> None:
         ctx.exit()
 
 
+def check_tk(tk_gui_func):
+    try:
+        tk_gui_func()
+    except Exception:
+        pass
+
+
 def zen_mode(cfg: AppConfig, zen: bool) -> None:
     if cfg["zen_mode"] or zen:
         print()
@@ -188,16 +195,16 @@ def post(ctx: click.Context, msg: Any, filename: str, gui: bool, pri: bool):
 
     Examples:
 
-    ago post (默认发送系统剪贴板的内容)
-
     ago post Hello world! (写一条微博客，内容为 'Hello world!')
 
-    ago post -g (打开 GUI 窗口写微博客)
+    ago post              (默认发送系统剪贴板的内容)
+
+    ago post -g           (打开 GUI 窗口写微博客)
     """
     check_init(ctx)
 
     if gui:
-        tk_post_msg(pri)
+        check_tk(tk_post_msg(pri))
         ctx.exit()
 
     if filename:
@@ -294,7 +301,7 @@ def tl(
         if not limit:
             limit = cfg["cli_page_n"]
 
-        buckets = [Bucket.Public.name, Bucket.Private.name]
+        buckets = []
         if pub:
             buckets = [Bucket.Public.name]
         if pri:
@@ -307,7 +314,7 @@ def tl(
         elif date_prefix:
             util.print_my_entries(date_prefix, limit, buckets, conn)
         elif count:
-            util.count_my_entries(count, limit, buckets, conn)
+            util.count_my_entries(count, buckets, conn)
         elif goto_date:
             util.my_cursor_goto(goto_date, conn)
         elif first:
@@ -347,8 +354,7 @@ def publish(
 
     with db.connect_db() as conn:
         if gui:
-            # TODO: 无法使用 tkinter 的情况。
-            tk_my_feed_info(conn)
+            check_tk(tk_my_feed_info(conn))
         elif info:
             publish_show_info(conn)
         elif title:
@@ -410,7 +416,14 @@ def news(
     delete: str,
     zen: bool,
 ):
-    """Subscribe and read feeds. (订阅别人的消息)"""
+    """Subscribe and read feeds. (订阅别人的消息)
+
+    Exmaples:
+
+    ago news -u all     (批量更新全部源)
+
+    ago news -u r92p72  (更新 id 为 R92P72 的源)
+    """
     check_init(ctx)
 
     with db.connect_db() as conn:
@@ -425,6 +438,8 @@ def news(
             if not parser:
                 parser = "Base"
             util.subscribe(follow, parser, conn)
+        elif update and update.upper() == "ALL":
+            util.update_all_feeds(conn)
         elif update:
             util.update_one_feed(update, parser, force, conn)
         elif new_id:
@@ -495,7 +510,7 @@ def copy(ctx: click.Context, entry_id: str, link: bool):
 
     Examples:
 
-    ago copy 97ur (复制 id 为 97ur 的消息的内容)
+    ago copy 97ur       (复制 id 为 97ur 的消息的内容)
 
     ago copy 97ur -link (复制 id 为 97ur 的消息的链接，是指消息本身的链接)
     """

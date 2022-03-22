@@ -90,9 +90,15 @@ def rss_to_entries(
 
 
 def feed_to_entries(
-    feed_id: str, feed_title: str, parser: str, parser_dict: FeedParserDict
+    feed_id: str,
+    feed_title: str,
+    parser: str,
+    parser_dict: FeedParserDict,
+    verbose: bool,
 ) -> list[FeedEntry]:
-    print(f"Using parser: {parser}")
+    if verbose:
+        print(f"Using parser: {parser}")
+
     match parser:
         case MyParser.HasTitle.name:
             return rss_to_entries(feed_id, feed_title, parser_dict, True, False)
