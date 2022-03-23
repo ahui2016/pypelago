@@ -34,14 +34,36 @@ CREATE TABLE IF NOT EXISTS entry
     bucket      text   NOT NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_entry_feed_id ON entry(feed_id);
 CREATE INDEX IF NOT EXISTS idx_entry_published ON entry(published);
 CREATE INDEX IF NOT EXISTS idx_entry_bucket ON entry(bucket);
 CREATE INDEX IF NOT EXISTS idx_entry_bucket_published ON entry(bucket, published);
+
+CREATE TABLE IF NOT EXISTS tag
+(
+    name       text       NOT NULL  COLLATE NOCASE,
+    entry_id   REFERENCES entry(id) COLLATE NOCASE ON DELETE CASCADE,
+);
+
+CREATE INDEX IF NOT EXISTS idx_tag_name ON tag(name);
+CREATE INDEX IF NOT EXISTS idx_tag_entry_id ON tag(entry_id);
 """
 
 Insert_metadata: Final[str] = "INSERT INTO metadata (name, value) VALUES (?, ?);"
 Get_metadata: Final[str] = "SELECT value FROM metadata WHERE name=?;"
 Update_metadata: Final[str] = "UPDATE metadata SET value=:value WHERE name=:name;"
+
+Insert_tag: Final[
+    str
+] = """
+    INSERT INTO tag (name, entry_id) VALUES (:name, :entry_id);
+    """
+
+Get_by_tag: Final[
+    str
+] = """
+    SELECT entry_id FROM tag WHERE name=?;
+    """
 
 Get_feed_by_id: Final[
     str

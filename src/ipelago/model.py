@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Final, TypedDict
+import re
+from typing import Final, Pattern, TypedDict
 import arrow
 
 from result import Err, Ok, Result
@@ -22,9 +23,12 @@ FeedSizeLimitBase: Final[int] = 20 * KB  # RSS feed 体积上限基数
 FeedSizeLimitMargin: Final[int] = 10 * KB  # 体积上限允许超出一点 (比如 XML tag, 日期等的体积)
 FeedSizeLimit: Final[int] = FeedSizeLimitBase + FeedSizeLimitMargin
 ShortStrSizeLimit: Final[int] = 256  # bytes
+TagSizeLimit: Final[int] = 30 # bytes
 
-OK = Ok("OK")
+OK: Final[Ok] = Ok("OK")
 
+TagsPattern: Final[Pattern[str]] = re.compile(r"\s#([\S]+)\s")
+"""标签以“空格井号”开头，以空格结尾"""
 
 class Bucket(Enum):
     Public = auto()
@@ -183,3 +187,11 @@ def next_feed_id(timestamp: int) -> tuple[str, int]:
     dt = arrow.now() if timestamp == 0 else arrow.get(timestamp + 1)
     new_id = base_repr(dt.int_timestamp, 36)
     return new_id, dt.int_timestamp
+
+
+def extract_tags(s:str) -> list[str]:
+    """标签必须以“空格井号”开头，以空格结尾，并且不超过 TagSizeLimit"""
+    if s[0] == "#":
+        s = " " + s  # 因为标签必须以“空格井号”开头
+    tags = TagsPattern.findall(s)
+    return [tag for tag in tags if byte_len(tag) <= TagSizeLimit]
