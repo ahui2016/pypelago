@@ -263,6 +263,9 @@ def toggle(ctx: click.Context, entry_id: str):
     "pri", "-pri", "--private", is_flag=True, help="Read my private messages only."
 )
 @click.option(
+    "fav", "-fav", "--favorite", is_flag=True, help="Read my favorite messages only."
+)
+@click.option(
     "limit", "-limit", "--limit", type=int, help="Limit the number of messages."
 )
 @click.option("zen", "-zen", "--zen-mode", is_flag=True, help="Zen mode. (专注模式)")
@@ -278,6 +281,7 @@ def tl(
     count: str,
     pub: bool,
     pri: bool,
+    fav: bool,
     limit: int,
     zen: bool,
 ):
@@ -306,6 +310,8 @@ def tl(
             buckets = [Bucket.Public.name]
         if pri:
             buckets = [Bucket.Private.name]
+        if fav:
+            buckets = [Bucket.Fav.name]
 
         if today:
             util.print_my_today(limit, buckets, conn)
@@ -414,6 +420,7 @@ def toggle_link(ctx: click.Context, _, value):
 )
 @click.option("update", "-u", "--update", help="Update a feed.")
 @click.option("feed_id", "-feed", "--feed", help="Show messages of a feed.")
+@click.option("like", "-like", "--like", help="Move an entry to the Favorite bucket.")
 @click.option("new_id", "--set-id", help="Change the id of a feed.")
 @click.option("new_name", "--set-name", help="Change the name of a feed.")
 @click.option("delete", "-delete", "--delete", help="Delete a feed (specify by id).")
@@ -429,11 +436,12 @@ def news(
     show_list: bool,
     first: bool,
     next: bool,
-    goto_date:str,
+    goto_date: str,
     limit: int,
     force: bool,
     update: str,
     feed_id: str,
+    like: str,
     new_id: str,
     new_name: str,
     delete: str,
@@ -465,6 +473,8 @@ def news(
             util.update_all_feeds(conn)
         elif update:
             util.update_one_feed(update, parser, force, conn)
+        elif like:
+            util.move_to_fav(like, conn)
         elif new_id:
             check_id(ctx, feed_id)
             """这是既有 new_id 也有 feed_id 的情形"""
@@ -517,11 +527,11 @@ def fav(ctx: click.Context, entry_id: str):
 @click.argument("entry_id", nargs=1)
 @click.pass_context
 def like(ctx: click.Context, entry_id: str):
-    """Same as 'ago fav -like'"""
+    """Same as 'ago news -like [id]'"""
     check_init(ctx)
-
     with db.connect_db() as conn:
         util.move_to_fav(entry_id, conn)
+    ctx.exit()
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)

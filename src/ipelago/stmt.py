@@ -226,6 +226,11 @@ Get_entry_by_id_prefix: Final[
 ] = """
     SELECT * FROM entry WHERE id LIKE ?;
     """
+Get_entry_in_bucket: Final[
+    str
+] = """
+    SELECT * FROM entry WHERE bucket=:bucket and id LIKE :id;
+    """
 
 Get_public_limit: Final[
     str

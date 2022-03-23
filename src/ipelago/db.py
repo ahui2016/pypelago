@@ -174,6 +174,7 @@ def my_cursor_goto(
 
     return Ok(new_entry_from(row))
 
+
 def news_cursor_goto(
     date_prefix: str, conn: sqlite3.Connection
 ) -> Result[FeedEntry, str]:
@@ -182,6 +183,7 @@ def news_cursor_goto(
         return Err("Not Found. (找不到该命令指定的消息)")
 
     return Ok(new_entry_from(row))
+
 
 def get_news_next(cursor: str, conn: sqlite3.Connection) -> Result[FeedEntry, str]:
     row = conn.execute(stmt.Get_news_next_entry, {"published": cursor}).fetchone()
@@ -419,6 +421,18 @@ def get_entry_by_prefix(prefix: str, conn: sqlite3.Connection) -> list[FeedEntry
     if not rows:
         return []
 
+    return [new_entry_from(row) for row in rows]
+
+
+def get_entry_in_bucket(
+    bucket: str, prefix: str, conn: sqlite3.Connection
+) -> list[FeedEntry]:
+    rows = conn.execute(
+        stmt.Get_entry_in_bucket, {"bucket": bucket, "id": prefix + "%"}
+    ).fetchall()
+
+    if not rows:
+        return []
     return [new_entry_from(row) for row in rows]
 
 

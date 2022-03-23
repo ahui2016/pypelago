@@ -12,7 +12,6 @@ from ipelago.model import (
     Bucket,
     Feed,
     FeedEntry,
-    MyParser,
     ShortStrSizeLimit,
     new_my_msg,
     utf8_byte_truncate,
@@ -65,6 +64,7 @@ def my_cursor_goto(date_prefix: str, conn: sqlite3.Connection) -> None:
             db.update_cfg(cfg, conn)
             print_my_msg(msg)
 
+
 def news_cursor_goto(date_prefix: str, conn: sqlite3.Connection) -> None:
     cfg = db.get_cfg(conn).unwrap()
     match db.news_cursor_goto(date_prefix, conn):
@@ -74,6 +74,7 @@ def news_cursor_goto(date_prefix: str, conn: sqlite3.Connection) -> None:
             cfg["news_cursor"] = msg.published
             db.update_cfg(cfg, conn)
             print_news_short_id(msg, cfg["news_show_link"])
+
 
 def print_news(msg: FeedEntry, show_link: bool, short_id: bool) -> None:
     entry_id = msg.entry_id[:4] if short_id else msg.entry_id
@@ -122,10 +123,17 @@ def print_my_entries(
         entries = db.get_by_date_my_buckets(prefix, limit, conn)
     else:
         entries = db.get_by_date(prefix, limit, buckets[0], conn)
-    print_entries(entries, False, print_my_msg)
+
+    printer = print_my_msg
+    if buckets and buckets[0] == Bucket.Fav.name:
+        printer = print_fav_entry
+
+    print_entries(entries, False, printer)
 
 
 def count_my_entries(prefix: str, buckets: list[str], conn: sqlite3.Connection) -> None:
+    if not buckets:
+        buckets = [Bucket.Public.name, Bucket.Private.name]
     n = db.conut_by_date_buckets(prefix, buckets, conn)
     print(f"[{prefix}]: {n} message(s)")
 
@@ -265,10 +273,7 @@ def print_fav_entry(msg: FeedEntry, show_link: bool = False) -> None:
     print()
 
 
-def get_entry_by_prefix(
-    prefix: str, conn: sqlite3.Connection
-) -> Result[FeedEntry, str]:
-    entries = db.get_entry_by_prefix(prefix, conn)
+def get_one_from(entries: list[FeedEntry], prefix: str) -> Result[FeedEntry, str]:
     if len(entries) < 1:
         return Err(f"Not Found: {prefix}")
 
@@ -280,8 +285,22 @@ def get_entry_by_prefix(
     return Ok(entries[0])
 
 
+def get_entry_by_prefix(
+    prefix: str, conn: sqlite3.Connection
+) -> Result[FeedEntry, str]:
+    entries = db.get_entry_by_prefix(prefix, conn)
+    return get_one_from(entries, prefix)
+
+
+def get_entry_in_bucket(
+    prefix: str, conn: sqlite3.Connection
+) -> Result[FeedEntry, str]:
+    entries = db.get_entry_in_bucket(Bucket.News.name, prefix, conn)
+    return get_one_from(entries, prefix)
+
+
 def move_to_fav(prefix: str, conn: sqlite3.Connection) -> None:
-    match get_entry_by_prefix(prefix, conn):
+    match get_entry_in_bucket(prefix, conn):
         case Err(e):
             print(e)
         case Ok(entry):
