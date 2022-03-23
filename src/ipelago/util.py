@@ -13,12 +13,15 @@ from ipelago.model import (
     Feed,
     FeedEntry,
     ShortStrSizeLimit,
+    extract_tags,
     new_my_msg,
     utf8_byte_truncate,
 )
 from ipelago.parser import feed_to_entries
 
 RequestsTimeout: Final[int] = 5
+
+Conn = sqlite3.Connection
 
 
 def copytext(text: str) -> None:
@@ -28,11 +31,27 @@ def copytext(text: str) -> None:
         pass
 
 
-def requests_get(url: str, conn: sqlite3.Connection):
+def requests_get(url: str, conn: Conn):
     return requests.get(url, proxies=db.get_proxies(conn), timeout=RequestsTimeout)
 
 
+def print_fav_entry(msg: FeedEntry, show_link: bool = False) -> None:
+    date = arrow.get(msg.published).format("YYYY-MM-DD")
+    title = f"[{msg.entry_id}] ({msg.feed_id}) {date}"
+    print(f"{title}\n{msg.content}")
+    print("--------")
+    if msg.link:
+        print(msg.link)
+    elif msg.feed_name:
+        print(msg.feed_name)
+    print()
+
+
 def print_my_msg(msg: FeedEntry, show_link: bool = False) -> None:
+    if Bucket[msg.bucket] is Bucket.Fav:
+        print_fav_entry(msg)
+        return
+
     date = arrow.get(msg.published).format("YYYY-MM-DD")
     title = f"[{msg.entry_id}] [{date}]"
     if Bucket[msg.bucket] is Bucket.Private:
@@ -40,7 +59,7 @@ def print_my_msg(msg: FeedEntry, show_link: bool = False) -> None:
     print(f"{title}\n{msg.content}\n")
 
 
-def print_my_next_msg(conn: sqlite3.Connection) -> None:
+def print_my_next_msg(conn: Conn) -> None:
     cfg = db.get_cfg(conn).unwrap()
     match db.get_my_next(cfg["tl_cursor"], conn):
         case Err():
@@ -54,7 +73,7 @@ def print_my_next_msg(conn: sqlite3.Connection) -> None:
             print_my_msg(msg)
 
 
-def my_cursor_goto(date_prefix: str, conn: sqlite3.Connection) -> None:
+def my_cursor_goto(date_prefix: str, conn: Conn) -> None:
     cfg = db.get_cfg(conn).unwrap()
     match db.my_cursor_goto(date_prefix, conn):
         case Err(e):
@@ -65,7 +84,7 @@ def my_cursor_goto(date_prefix: str, conn: sqlite3.Connection) -> None:
             print_my_msg(msg)
 
 
-def news_cursor_goto(date_prefix: str, conn: sqlite3.Connection) -> None:
+def news_cursor_goto(date_prefix: str, conn: Conn) -> None:
     cfg = db.get_cfg(conn).unwrap()
     match db.news_cursor_goto(date_prefix, conn):
         case Err(e):
@@ -90,7 +109,7 @@ def print_news_short_id(msg: FeedEntry, show_link: bool) -> None:
     return print_news(msg, show_link, True)
 
 
-def print_news_next_msg(conn: sqlite3.Connection) -> None:
+def print_news_next_msg(conn: Conn) -> None:
     cfg = db.get_cfg(conn).unwrap()
     match db.get_news_next(cfg["news_cursor"], conn):
         case Err():
@@ -116,38 +135,35 @@ def print_entries(
         printer(entry, show_link)
 
 
-def print_my_entries(
-    prefix: str, limit: int, buckets: list[str], conn: sqlite3.Connection
-) -> None:
+def print_my_entries(prefix: str, limit: int, buckets: list[str], conn: Conn) -> None:
     if not buckets:
         entries = db.get_by_date_my_buckets(prefix, limit, conn)
     else:
         entries = db.get_by_date(prefix, limit, buckets[0], conn)
 
-    printer = print_my_msg
-    if buckets and buckets[0] == Bucket.Fav.name:
-        printer = print_fav_entry
-
-    print_entries(entries, False, printer)
+    print_entries(entries, False, print_my_msg)
 
 
-def count_my_entries(prefix: str, buckets: list[str], conn: sqlite3.Connection) -> None:
+def count_my_entries(prefix: str, buckets: list[str], conn: Conn) -> None:
     if not buckets:
         buckets = [Bucket.Public.name, Bucket.Private.name]
     n = db.conut_by_date_buckets(prefix, buckets, conn)
     print(f"[{prefix}]: {n} message(s)")
 
 
-def print_my_today(limit: int, buckets: list[str], conn: sqlite3.Connection) -> None:
+def print_my_today(limit: int, buckets: list[str], conn: Conn) -> None:
     prefix = arrow.now().format("YYYY-MM-DD")
     print_my_entries(prefix, limit, buckets, conn)
 
 
-def print_my_yesterday(
-    limit: int, buckets: list[str], conn: sqlite3.Connection
-) -> None:
+def print_my_yesterday(limit: int, buckets: list[str], conn: Conn) -> None:
     prefix = arrow.now().shift(days=-1).format("YYYY-MM-DD")
     print_my_entries(prefix, limit, buckets, conn)
+
+
+def insert_tags(tags: list[str], entry_id: str, conn: Conn) -> None:
+    db.insert_tags(tags, entry_id, conn).unwrap()
+    print(f'[Tags] {" ".join(tags)}')
 
 
 def post_msg(msg: str, bucket: Bucket) -> None:
@@ -166,13 +182,13 @@ def post_msg(msg: str, bucket: Bucket) -> None:
                         "bucket": entry.bucket,
                     },
                 )
-                first = db.get_my_next("", conn).unwrap()
-                print_my_msg(first)
+                print_my_msg(entry)
+                tags = extract_tags(msg)
+                if tags:
+                    insert_tags(tags, entry.entry_id, conn)
 
 
-def retrieve_feed(
-    feed_url: str, conn: sqlite3.Connection
-) -> Result[FeedParserDict, str]:
+def retrieve_feed(feed_url: str, conn: Conn) -> Result[FeedParserDict, str]:
     """每次 retrieve_feed 之前都应该检查更新频率，避免浪费网络资源。"""
 
     # 允许添加本地源
@@ -188,7 +204,7 @@ def retrieve_feed(
     return Ok(feedparser.parse(r.text))
 
 
-def subscribe(link: str, parser: str, conn: sqlite3.Connection) -> None:
+def subscribe(link: str, parser: str, conn: Conn) -> None:
     e = db.check_before_subscribe(link, conn).err()
     if e:
         print(e)
@@ -207,7 +223,7 @@ def subscribe(link: str, parser: str, conn: sqlite3.Connection) -> None:
             print("OK.")
 
 
-def retrieve_and_update(feed: Feed, verbose: bool, conn: sqlite3.Connection) -> None:
+def retrieve_and_update(feed: Feed, verbose: bool, conn: Conn) -> None:
     match retrieve_feed(feed.link, conn):
         case Err(e):
             print(e)
@@ -220,9 +236,7 @@ def retrieve_and_update(feed: Feed, verbose: bool, conn: sqlite3.Connection) -> 
             print("OK.")
 
 
-def update_one_feed(
-    feed_id: str, parser: str, force: bool, conn: sqlite3.Connection
-) -> None:
+def update_one_feed(feed_id: str, parser: str, force: bool, conn: Conn) -> None:
     match db.check_before_update_one(feed_id, parser, force, conn):
         case Err(e):
             print(e)
@@ -230,7 +244,7 @@ def update_one_feed(
             retrieve_and_update(feed, True, conn)
 
 
-def update_all_feeds(conn: sqlite3.Connection) -> None:
+def update_all_feeds(conn: Conn) -> None:
     sl = db.get_subs_list(conn)
     for feed in sl:
         match db.check_before_update_all(feed):
@@ -241,7 +255,7 @@ def update_all_feeds(conn: sqlite3.Connection) -> None:
 
 
 # 如果指定 feed_id, 则只显示指定的一个源，否则显示全部源的信息。
-def print_subs_list(conn: sqlite3.Connection, feed_id: str = "") -> None:
+def print_subs_list(conn: Conn, feed_id: str = "") -> None:
     sl = db.get_subs_list(conn, feed_id)
     if not sl:
         if feed_id:
@@ -261,18 +275,6 @@ def print_subs_list(conn: sqlite3.Connection, feed_id: str = "") -> None:
         print(f"[{feed.feed_id}] {feed.title}\n{feed.link}\n")
 
 
-def print_fav_entry(msg: FeedEntry, show_link: bool = False) -> None:
-    date = arrow.get(msg.published).format("YYYY-MM-DD")
-    title = f"[{msg.entry_id}] ({msg.feed_id}) {date}"
-    print(f"{title}\n{msg.content}")
-    print("--------")
-    if msg.link:
-        print(msg.link)
-    elif msg.feed_name:
-        print(msg.feed_name)
-    print()
-
-
 def get_one_from(entries: list[FeedEntry], prefix: str) -> Result[FeedEntry, str]:
     if len(entries) < 1:
         return Err(f"Not Found: {prefix}")
@@ -285,21 +287,17 @@ def get_one_from(entries: list[FeedEntry], prefix: str) -> Result[FeedEntry, str
     return Ok(entries[0])
 
 
-def get_entry_by_prefix(
-    prefix: str, conn: sqlite3.Connection
-) -> Result[FeedEntry, str]:
+def get_entry_by_prefix(prefix: str, conn: Conn) -> Result[FeedEntry, str]:
     entries = db.get_entry_by_prefix(prefix, conn)
     return get_one_from(entries, prefix)
 
 
-def get_entry_in_bucket(
-    prefix: str, conn: sqlite3.Connection
-) -> Result[FeedEntry, str]:
+def get_entry_in_bucket(prefix: str, conn: Conn) -> Result[FeedEntry, str]:
     entries = db.get_entry_in_bucket(Bucket.News.name, prefix, conn)
     return get_one_from(entries, prefix)
 
 
-def move_to_fav(prefix: str, conn: sqlite3.Connection) -> None:
+def move_to_fav(prefix: str, conn: Conn) -> None:
     match get_entry_in_bucket(prefix, conn):
         case Err(e):
             print(e)
@@ -309,7 +307,7 @@ def move_to_fav(prefix: str, conn: sqlite3.Connection) -> None:
             print_fav_entry(fav_entry)
 
 
-def copy_msg_link(prefix: str, link: bool, conn: sqlite3.Connection) -> None:
+def copy_msg_link(prefix: str, link: bool, conn: Conn) -> None:
     match get_entry_by_prefix(prefix, conn):
         case Err(e):
             print(e)
@@ -334,12 +332,20 @@ def toggle_entry_bucket(prefix: str) -> None:
                         print_my_msg(toggled)
 
 
-def print_recent_fav(conn: sqlite3.Connection) -> None:
-    cfg = db.get_cfg(conn).unwrap()
-    entries = db.get_recent_fav(cfg["cli_page_n"], conn)
+def print_recent_fav(limit: int, conn: Conn) -> None:
+    entries = db.get_recent_fav(limit, conn)
     if not entries:
         print("收藏消息：空空如也。")
         print("Try 'ago fav -h' to get help.")
         return
 
     print_entries(entries, False, print_fav_entry)
+
+
+def search_by_tag(tag: str, limit:int, conn: Conn) -> None:
+    print(f"Search Tag: {tag}\n")
+    entries = db.get_by_tag(tag, limit, conn)
+    if not entries:
+        print("Not Found (找不到相关信息)")
+    else:
+        print_entries(entries, False, print_my_msg)

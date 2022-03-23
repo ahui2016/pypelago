@@ -42,7 +42,7 @@ CREATE INDEX IF NOT EXISTS idx_entry_bucket_published ON entry(bucket, published
 CREATE TABLE IF NOT EXISTS tag
 (
     name       text       NOT NULL  COLLATE NOCASE,
-    entry_id   REFERENCES entry(id) COLLATE NOCASE ON DELETE CASCADE,
+    entry_id   REFERENCES entry(id) ON DELETE CASCADE COLLATE NOCASE
 );
 
 CREATE INDEX IF NOT EXISTS idx_tag_name ON tag(name);
@@ -62,7 +62,10 @@ Insert_tag: Final[
 Get_by_tag: Final[
     str
 ] = """
-    SELECT entry_id FROM tag WHERE name=?;
+    SELECT id, content, link, published, feed_id, feed_name, bucket
+    FROM tag, entry
+    WHERE tag.name=:name and tag.entry_id=entry.id
+    ORDER BY entry.published DESC LIMIT :limit;
     """
 
 Get_feed_by_id: Final[
@@ -167,29 +170,29 @@ Update_my_feed_author: Final[
 Get_subs_list: Final[
     str
 ] = """
-SELECT * FROM feed WHERE id<>'Public' and id<>'Private' and id<>'Fav'
-ORDER BY id;
-"""
+    SELECT * FROM feed WHERE id<>'Public' and id<>'Private' and id<>'Fav'
+    ORDER BY id;
+    """
 
 Insert_entry: Final[
     str
 ] = """
-INSERT INTO entry (
-    id, content, link, published, feed_id, feed_name, bucket
-) VALUES (
-    :id, :content, :link, :published, :feed_id, :feed_name, :bucket
-);
-"""
+    INSERT INTO entry (
+        id, content, link, published, feed_id, feed_name, bucket
+    ) VALUES (
+        :id, :content, :link, :published, :feed_id, :feed_name, :bucket
+    );
+    """
 
 Insert_my_entry: Final[
     str
 ] = """
-INSERT INTO entry (
-    id, content, link, published, feed_id, feed_name, bucket
-) VALUES (
-    :id, :content, '', :published, :feed_id, '', :bucket
-);
-"""
+    INSERT INTO entry (
+        id, content, link, published, feed_id, feed_name, bucket
+    ) VALUES (
+        :id, :content, '', :published, :feed_id, '', :bucket
+    );
+    """
 
 # first 是指按照消息发布时间最新的信息。
 Get_my_first_entry: Final[

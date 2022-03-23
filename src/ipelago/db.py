@@ -37,23 +37,28 @@ db_path = app_config_dir.joinpath(db_filename)
 
 NoResultError = "database-no-result"
 
+Conn = sqlite3.Connection
 
-def connect_db() -> sqlite3.Connection:
+
+def connect_db() -> Conn:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def connExec(
-    conn: sqlite3.Connection, query: str, param: Iterable[Any]
+    conn: Conn, query: str, param: Iterable[Any], many: bool = False
 ) -> Result[int, str]:
-    n = conn.execute(query, param).rowcount
+    if many:
+        n = conn.executemany(query, param).rowcount
+    else:
+        n = conn.execute(query, param).rowcount
     if n <= 0:
         return Err("sqlite row affected = 0")
     return Ok(n)
 
 
-def get_cfg(conn: sqlite3.Connection) -> Result[AppConfig, str]:
+def get_cfg(conn: Conn) -> Result[AppConfig, str]:
     row = conn.execute(stmt.Get_metadata, (app_config_name,)).fetchone()
     if row is None:
         return Err(NoResultError)
@@ -61,51 +66,51 @@ def get_cfg(conn: sqlite3.Connection) -> Result[AppConfig, str]:
     return Ok(cfg)
 
 
-def update_cfg(cfg: AppConfig, conn: sqlite3.Connection) -> None:
+def update_cfg(cfg: AppConfig, conn: Conn) -> None:
     conn.execute(
         stmt.Update_metadata, {"value": json.dumps(cfg), "name": app_config_name}
     )
 
 
-def init_cfg(conn: sqlite3.Connection) -> None:
+def init_cfg(conn: Conn) -> None:
     cfg = get_cfg(conn)
     if cfg.err():
         default_cfg = default_config()
         conn.execute(stmt.Insert_metadata, (app_config_name, json.dumps(default_cfg)))
 
 
-def get_current_id(conn: sqlite3.Connection) -> Result[str, str]:
+def get_current_id(conn: Conn) -> Result[str, str]:
     row = conn.execute(stmt.Get_metadata, (current_id_name,)).fetchone()
     if row is None:
         return Err(NoResultError)
     return Ok(row[0])
 
 
-def update_current_id(cid: str, conn: sqlite3.Connection) -> None:
+def update_current_id(cid: str, conn: Conn) -> None:
     conn.execute(stmt.Update_metadata, {"value": cid, "name": current_id_name})
 
 
-def get_next_id(conn: sqlite3.Connection) -> str:
+def get_next_id(conn: Conn) -> str:
     cid = get_current_id(conn).unwrap()
     nid = parse_id(cid).next_id()
     update_current_id(nid, conn)
     return nid
 
 
-def init_current_id(conn: sqlite3.Connection) -> None:
+def init_current_id(conn: Conn) -> None:
     cid = get_current_id(conn)
     if cid.err():
         conn.execute(stmt.Insert_metadata, (current_id_name, first_id()))
 
 
-def get_feed_by_id(feed_id: str, conn: sqlite3.Connection) -> Result[Feed, str]:
+def get_feed_by_id(feed_id: str, conn: Conn) -> Result[Feed, str]:
     row = conn.execute(stmt.Get_feed_by_id, (feed_id,)).fetchone()
     if not row:
         return Err(NoResultError)
     return Ok(new_feed_from(row))
 
 
-def init_my_feeds(title: str, conn: sqlite3.Connection) -> None:
+def init_my_feeds(title: str, conn: Conn) -> None:
     if get_feed_by_id(PublicBucketID, conn).err():
         conn.execute(
             stmt.Insert_my_feed, {"id": PublicBucketID, "link": "", "title": title}
@@ -151,12 +156,12 @@ def get_proxies_cfg(cfg: AppConfig) -> dict | None:
         )
 
 
-def get_proxies(conn: sqlite3.Connection) -> dict | None:
+def get_proxies(conn: Conn) -> dict | None:
     cfg = get_cfg(conn).unwrap()
     return get_proxies_cfg(cfg)
 
 
-def get_my_next(cursor: str, conn: sqlite3.Connection) -> Result[FeedEntry, str]:
+def get_my_next(cursor: str, conn: Conn) -> Result[FeedEntry, str]:
     row = conn.execute(stmt.Get_my_next_entry, {"published": cursor}).fetchone()
     if not row:
         row = conn.execute(stmt.Get_my_first_entry).fetchone()
@@ -165,9 +170,7 @@ def get_my_next(cursor: str, conn: sqlite3.Connection) -> Result[FeedEntry, str]
     return Ok(new_entry_from(row))
 
 
-def my_cursor_goto(
-    date_prefix: str, conn: sqlite3.Connection
-) -> Result[FeedEntry, str]:
+def my_cursor_goto(date_prefix: str, conn: Conn) -> Result[FeedEntry, str]:
     row = conn.execute(stmt.My_cursor_goto, {"published": date_prefix}).fetchone()
     if not row:
         return Err("Not Found. (找不到该命令指定的消息)")
@@ -175,9 +178,7 @@ def my_cursor_goto(
     return Ok(new_entry_from(row))
 
 
-def news_cursor_goto(
-    date_prefix: str, conn: sqlite3.Connection
-) -> Result[FeedEntry, str]:
+def news_cursor_goto(date_prefix: str, conn: Conn) -> Result[FeedEntry, str]:
     row = conn.execute(stmt.News_cursor_goto, {"published": date_prefix}).fetchone()
     if not row:
         return Err("Not Found. (找不到该命令指定的消息)")
@@ -185,7 +186,7 @@ def news_cursor_goto(
     return Ok(new_entry_from(row))
 
 
-def get_news_next(cursor: str, conn: sqlite3.Connection) -> Result[FeedEntry, str]:
+def get_news_next(cursor: str, conn: Conn) -> Result[FeedEntry, str]:
     row = conn.execute(stmt.Get_news_next_entry, {"published": cursor}).fetchone()
     if not row:
         # 回到最新一条消息
@@ -199,12 +200,7 @@ def get_news_next(cursor: str, conn: sqlite3.Connection) -> Result[FeedEntry, st
     return Ok(new_entry_from(row))
 
 
-def get_by_date(
-    date: str,
-    limit: int,
-    bucket: str,
-    conn: sqlite3.Connection,
-) -> list[FeedEntry]:
+def get_by_date(date: str, limit: int, bucket: str, conn: Conn) -> list[FeedEntry]:
     result: list[FeedEntry] = []
     for row in conn.execute(
         stmt.Get_by_date, {"bucket": bucket, "published": date + "%", "limit": limit}
@@ -213,11 +209,7 @@ def get_by_date(
     return result
 
 
-def get_by_date_my_buckets(
-    date: str,
-    limit: int,
-    conn: sqlite3.Connection,
-) -> list[FeedEntry]:
+def get_by_date_my_buckets(date: str, limit: int, conn: Conn) -> list[FeedEntry]:
     result: list[FeedEntry] = []
     for row in conn.execute(
         stmt.Get_by_date_my_buckets, {"published": date + "%", "limit": limit}
@@ -226,11 +218,7 @@ def get_by_date_my_buckets(
     return result
 
 
-def conut_by_date_buckets(
-    date: str,
-    buckets: list[str],
-    conn: sqlite3.Connection,
-) -> int:
+def conut_by_date_buckets(date: str, buckets: list[str], conn: Conn) -> int:
     total = 0
     for bucket in buckets:
         row = conn.execute(
@@ -243,9 +231,7 @@ def conut_by_date_buckets(
     return total
 
 
-def get_public_limit(
-    cursor: str, limit: int, conn: sqlite3.Connection
-) -> list[FeedEntry]:
+def get_public_limit(cursor: str, limit: int, conn: Conn) -> list[FeedEntry]:
     result: list[FeedEntry] = []
     for row in conn.execute(
         stmt.Get_public_limit, {"published": cursor, "limit": limit}
@@ -254,9 +240,7 @@ def get_public_limit(
     return result
 
 
-def get_news_by_feed(
-    feed_id: str, limit: int, conn: sqlite3.Connection
-) -> list[FeedEntry]:
+def get_news_by_feed(feed_id: str, limit: int, conn: Conn) -> list[FeedEntry]:
     result: list[FeedEntry] = []
     for row in conn.execute(
         stmt.Get_news_by_feed, {"feed_id": feed_id, "limit": limit}
@@ -265,7 +249,7 @@ def get_news_by_feed(
     return result
 
 
-def get_subs_list(conn: sqlite3.Connection, feed_id: str = "") -> list[Feed]:
+def get_subs_list(conn: Conn, feed_id: str = "") -> list[Feed]:
     subs_list: list[Feed] = []
 
     if feed_id in [PublicBucketID, PrivateBucketID, FavBucketID]:
@@ -293,7 +277,7 @@ def check_before_update_all(feed: Feed) -> Result[str, str]:
 
 
 def check_before_update_one(
-    feed_id: str, parser: str, force: bool, conn: sqlite3.Connection
+    feed_id: str, parser: str, force: bool, conn: Conn
 ) -> Result[Feed, str]:
     if feed_id in [PublicBucketID, PrivateBucketID, FavBucketID]:
         return Err(f"Not Found: {feed_id}")
@@ -323,18 +307,16 @@ def check_before_update_one(
                 )
 
 
-def insert_entries(entries: list[FeedEntry], conn: sqlite3.Connection) -> None:
+def insert_entries(entries: list[FeedEntry], conn: Conn) -> None:
     item_list = [entry.to_dict() for entry in entries]
     conn.executemany(stmt.Insert_entry, item_list)
 
 
-def delete_entries(feed_id: str, conn: sqlite3.Connection) -> None:
+def delete_entries(feed_id: str, conn: Conn) -> None:
     conn.execute(stmt.Delete_entries, (feed_id,))
 
 
-def update_entries(
-    feed_id: str, entries: list[FeedEntry], conn: sqlite3.Connection
-) -> None:
+def update_entries(feed_id: str, entries: list[FeedEntry], conn: Conn) -> None:
     delete_entries(feed_id, conn)
     insert_entries(entries, conn)
     updated = arrow.now().format(RFC3339)
@@ -343,7 +325,7 @@ def update_entries(
     ).unwrap()
 
 
-def new_feed_id(conn: sqlite3.Connection) -> str:
+def new_feed_id(conn: Conn) -> str:
     timestamp = 0
     while True:
         feed_id, timestamp = next_feed_id(timestamp)
@@ -352,7 +334,7 @@ def new_feed_id(conn: sqlite3.Connection) -> str:
             return feed_id
 
 
-def check_before_subscribe(link: str, conn: sqlite3.Connection) -> Result[str, str]:
+def check_before_subscribe(link: str, conn: Conn) -> Result[str, str]:
     row = conn.execute(stmt.Get_feed_link, (link,)).fetchone()
     if row:
         return Err(f"Exists(不可重复订阅): {link}")
@@ -360,7 +342,7 @@ def check_before_subscribe(link: str, conn: sqlite3.Connection) -> Result[str, s
         return OK
 
 
-def subscribe_feed(link: str, title: str, parser: str, conn: sqlite3.Connection) -> str:
+def subscribe_feed(link: str, title: str, parser: str, conn: Conn) -> str:
     """Return the feed_id if nothing wrong."""
     feed_id = new_feed_id(conn)
     conn.execute(
@@ -378,7 +360,7 @@ def subscribe_feed(link: str, title: str, parser: str, conn: sqlite3.Connection)
     return feed_id
 
 
-def delete_feed(feed_id: str, conn: sqlite3.Connection) -> str:
+def delete_feed(feed_id: str, conn: Conn) -> str:
     row = conn.execute(stmt.Get_feed_id, (feed_id,)).fetchone()
     if not row:
         return f"Not Found: {feed_id}"
@@ -388,9 +370,7 @@ def delete_feed(feed_id: str, conn: sqlite3.Connection) -> str:
     return "OK. 已删除"
 
 
-def update_feed_id(
-    newid: str, oldid: str, conn: sqlite3.Connection
-) -> Result[str, str]:
+def update_feed_id(newid: str, oldid: str, conn: Conn) -> Result[str, str]:
     if oldid.upper() == newid.upper():
         return OK
 
@@ -403,9 +383,7 @@ def update_feed_id(
     return OK
 
 
-def update_feed_title(
-    title: str, feed_id: str, conn: sqlite3.Connection
-) -> Result[str, str]:
+def update_feed_title(title: str, feed_id: str, conn: Conn) -> Result[str, str]:
     err = connExec(conn, stmt.Update_feed_title, {"title": title, "id": feed_id}).err()
     if err:
         return Err(err)
@@ -416,7 +394,7 @@ def update_feed_title(
     return OK
 
 
-def get_entry_by_prefix(prefix: str, conn: sqlite3.Connection) -> list[FeedEntry]:
+def get_entry_by_prefix(prefix: str, conn: Conn) -> list[FeedEntry]:
     rows = conn.execute(stmt.Get_entry_by_id_prefix, (prefix + "%",)).fetchall()
     if not rows:
         return []
@@ -424,9 +402,7 @@ def get_entry_by_prefix(prefix: str, conn: sqlite3.Connection) -> list[FeedEntry
     return [new_entry_from(row) for row in rows]
 
 
-def get_entry_in_bucket(
-    bucket: str, prefix: str, conn: sqlite3.Connection
-) -> list[FeedEntry]:
+def get_entry_in_bucket(bucket: str, prefix: str, conn: Conn) -> list[FeedEntry]:
     rows = conn.execute(
         stmt.Get_entry_in_bucket, {"bucket": bucket, "id": prefix + "%"}
     ).fetchall()
@@ -436,13 +412,13 @@ def get_entry_in_bucket(
     return [new_entry_from(row) for row in rows]
 
 
-def move_to_fav(entry_id: str, conn: sqlite3.Connection) -> str:
+def move_to_fav(entry_id: str, conn: Conn) -> str:
     newid = get_next_id(conn)
     connExec(conn, stmt.Move_entry_to_fav, {"oldid": entry_id, "newid": newid}).unwrap()
     return newid
 
 
-def get_recent_fav(limit: int, conn: sqlite3.Connection) -> list[FeedEntry]:
+def get_recent_fav(limit: int, conn: Conn) -> list[FeedEntry]:
     entries = []
     for row in conn.execute(
         stmt.Get_entries_limit, {"bucket": Bucket.Fav.name, "limit": limit}
@@ -451,9 +427,7 @@ def get_recent_fav(limit: int, conn: sqlite3.Connection) -> list[FeedEntry]:
     return entries
 
 
-def toggle_entry_bucket(
-    entry: FeedEntry, conn: sqlite3.Connection
-) -> Result[FeedEntry, str]:
+def toggle_entry_bucket(entry: FeedEntry, conn: Conn) -> Result[FeedEntry, str]:
     bucket = Bucket[entry.bucket]
     if bucket not in [Bucket.Public, Bucket.Private]:
         return Err("The bucket is not Public or Private.\n只能在 Public 与 Private 之间切换。")
@@ -467,8 +441,20 @@ def toggle_entry_bucket(
 
 
 def update_my_feed_info(
-    link: str, title: str, author: str, conn: sqlite3.Connection
+    link: str, title: str, author: str, conn: Conn
 ) -> Result[int, str]:
     return connExec(
         conn, stmt.Update_my_feed_info, {"link": link, "title": title, "author": author}
     )
+
+
+def insert_tags(names: list[str], entry_id: str, conn: Conn) -> Result[int, str]:
+    pairs = [{"name": name, "entry_id": entry_id} for name in names]
+    return connExec(conn, stmt.Insert_tag, pairs, many=True)
+
+
+def get_by_tag(name: str, limit: int, conn: Conn) -> list[FeedEntry]:
+    entries = []
+    for row in conn.execute(stmt.Get_by_tag, {"name": name, "limit": limit}):
+        entries.append(new_entry_from(row))
+    return entries

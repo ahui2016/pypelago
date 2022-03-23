@@ -162,8 +162,7 @@ def cli(ctx: click.Context, name: str):
 
 @cli.command(context_settings=CONTEXT_SETTINGS, name="init")
 @click.argument("name", nargs=1, required=True)
-@click.pass_context
-def init_command(ctx: click.Context, name: str):
+def init_command(name: str):
     """Set the name of your microblog and initialize it.
 
     设置你的微博客名称并初始化数据库。
@@ -171,7 +170,6 @@ def init_command(ctx: click.Context, name: str):
     Example: ago init "Emily's Microblog"
     """
     click.echo(db.init_app(name))
-    ctx.exit()
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
@@ -222,7 +220,6 @@ def post(ctx: click.Context, msg: Any, filename: str, gui: bool, pri: bool):
             pass
 
     util.post_msg(msg, my_bucket(pri))
-    ctx.exit()
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
@@ -235,7 +232,6 @@ def toggle(ctx: click.Context, entry_id: str):
     """
     check_init(ctx)
     util.toggle_entry_bucket(entry_id)
-    ctx.exit()
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
@@ -299,19 +295,19 @@ def tl(
     """
     check_init(ctx)
 
+    buckets = []
+    if pub:
+        buckets = [Bucket.Public.name]
+    if pri:
+        buckets = [Bucket.Private.name]
+    if fav:
+        buckets = [Bucket.Fav.name]
+
     with db.connect_db() as conn:
         cfg = db.get_cfg(conn).unwrap()
 
         if not limit:
             limit = cfg["cli_page_n"]
-
-        buckets = []
-        if pub:
-            buckets = [Bucket.Public.name]
-        if pri:
-            buckets = [Bucket.Private.name]
-        if fav:
-            buckets = [Bucket.Fav.name]
 
         if today:
             util.print_my_today(limit, buckets, conn)
@@ -321,6 +317,8 @@ def tl(
             util.print_my_entries(date_prefix, limit, buckets, conn)
         elif count:
             util.count_my_entries(count, buckets, conn)
+        elif fav:
+            util.print_recent_fav(limit, conn)
         elif goto_date:
             util.my_cursor_goto(goto_date, conn)
         elif first:
@@ -331,8 +329,6 @@ def tl(
         else:
             zen_mode(cfg, zen)
             util.print_my_next_msg(conn)
-
-    ctx.exit()
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
@@ -375,8 +371,6 @@ def publish(
         else:
             check(ctx, check_before_publish(conn), False)
             publish_html(conn, force)
-
-    ctx.exit()
 
 
 def toggle_link(ctx: click.Context, _, value):
@@ -505,23 +499,6 @@ def news(
             zen_mode(cfg, zen)
             util.print_news_next_msg(conn)
 
-    ctx.exit()
-
-
-@cli.command(context_settings=CONTEXT_SETTINGS)
-@click.option(
-    "entry_id", "-like", "--like", help="Move an entry to the Favorite bucket."
-)
-@click.pass_context
-def fav(ctx: click.Context, entry_id: str):
-    check_init(ctx)
-
-    with db.connect_db() as conn:
-        if entry_id:
-            util.move_to_fav(entry_id, conn)
-        else:
-            util.print_recent_fav(conn)
-
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("entry_id", nargs=1)
@@ -531,7 +508,6 @@ def like(ctx: click.Context, entry_id: str):
     check_init(ctx)
     with db.connect_db() as conn:
         util.move_to_fav(entry_id, conn)
-    ctx.exit()
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
@@ -549,9 +525,36 @@ def copy(ctx: click.Context, entry_id: str, link: bool):
 
     ago copy 97ur -link (复制 id 为 97ur 的消息的链接，是指消息本身的链接)
     """
+    check_init(ctx)
     with db.connect_db() as conn:
         util.copy_msg_link(entry_id, link, conn)
-    ctx.exit()
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS)
+@click.argument("keyword", nargs=1)
+@click.option(
+    "limit", "-limit", "--limit", type=int, help="Limit the number of results."
+)
+@click.pass_context
+def search(ctx: click.Context, keyword: str, limit:int):
+    """Search entries by a tag or a word."""
+    check_init(ctx)
+
+    with db.connect_db() as conn:
+        cfg = db.get_cfg(conn).unwrap()
+
+        if not limit:
+            limit = cfg["cli_page_n"]
+        
+        keyword = keyword.strip()
+        if keyword[0] == "#":
+            tag = keyword[1:].strip()
+            if not tag:
+                print(f"Cannot search: {keyword}")
+            else:
+                util.search_by_tag(tag, limit, conn)
+        else:
+            print(f'Search Keyword: {keyword}')
 
 
 if __name__ == "__main__":
