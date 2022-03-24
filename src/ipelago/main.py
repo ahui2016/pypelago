@@ -1,7 +1,7 @@
 from typing import Any, cast
 import click
 import pyperclip
-from result import Result
+from result import Err, Ok, Result
 from ipelago import stmt
 from ipelago import db
 from ipelago.gui import tk_my_feed_info, tk_post_msg
@@ -232,6 +232,26 @@ def toggle(ctx: click.Context, entry_id: str):
     """
     check_init(ctx)
     util.toggle_entry_bucket(entry_id)
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS)
+@click.argument("entry_id", nargs=1)
+@click.pass_context
+def delete(ctx: click.Context, entry_id: str):
+    """Delete an entry.
+
+    删除一条消息，不可恢复。
+    """
+    check_init(ctx)
+    with db.connect_db() as conn:
+        match util.get_entry_by_prefix(entry_id, conn):
+            case Err(e):
+                print(e)
+            case Ok(entry):
+                util.print_bucket_msg(entry)
+                click.confirm("Confirm deletion (确认删除，不可恢复)", abort=True)
+                db.delete_one_entry(entry.entry_id, conn).unwrap()
+                print("OK, deleted.")
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
@@ -528,7 +548,9 @@ def copy(ctx: click.Context, entry_id: str, link: bool):
     "bucket",
     "-bucket",
     default="all",
-    type=click.Choice(["all", "public", "private", "news", "fav"], case_sensitive=False),
+    type=click.Choice(
+        ["all", "public", "private", "news", "fav"], case_sensitive=False
+    ),
     help="Search in the specific bucket only.",
 )
 @click.pass_context

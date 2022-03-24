@@ -440,6 +440,10 @@ def toggle_entry_bucket(entry: FeedEntry, conn: Conn) -> Result[FeedEntry, str]:
     return Ok(entry)
 
 
+def delete_one_entry(entry_id: str, conn: Conn) -> Result[int, str]:
+    return connExec(conn, stmt.Delete_entry, (entry_id,))
+
+
 def update_my_feed_info(
     link: str, title: str, author: str, conn: Conn
 ) -> Result[int, str]:
