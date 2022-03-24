@@ -453,8 +453,26 @@ def insert_tags(names: list[str], entry_id: str, conn: Conn) -> Result[int, str]
     return connExec(conn, stmt.Insert_tag, pairs, many=True)
 
 
-def get_by_tag(name: str, limit: int, conn: Conn) -> list[FeedEntry]:
-    entries = []
-    for row in conn.execute(stmt.Get_by_tag, {"name": name, "limit": limit}):
-        entries.append(new_entry_from(row))
-    return entries
+def get_by_tag(name: str, limit: int, bucket: str, conn: Conn) -> list[FeedEntry]:
+    if bucket == "All":
+        rows = conn.execute(stmt.Get_by_tag, {"name": name, "limit": limit})
+    else:
+        rows = conn.execute(
+            stmt.Get_by_tag_bucket, {"name": name, "limit": limit, "bucket": bucket}
+        )
+    return [new_entry_from(row) for row in rows]
+
+
+def search_entry_content(
+    keyword: str, limit: int, bucket: str, conn: Conn
+) -> list[FeedEntry]:
+    if bucket == "All":
+        rows = conn.execute(
+            stmt.Search_entry_content, {"content": "%" + keyword + "%", "limit": limit}
+        )
+    else:
+        rows = conn.execute(
+            stmt.Search_entry_content_bucket,
+            {"content": "%" + keyword + "%", "limit": limit, "bucket": bucket},
+        )
+    return [new_entry_from(row) for row in rows]

@@ -235,23 +235,20 @@ def toggle(ctx: click.Context, entry_id: str):
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
-@click.option(
-    "first", "-first", "--first", is_flag=True, help="Read my latest message."
-)
-@click.option("next", "-next", "--next", is_flag=True, help="Read my next message.")
+@click.option("first", "-first", is_flag=True, help="Read my latest message.")
+@click.option("next", "-next", is_flag=True, help="Read my next message.")
 @click.option(
     "goto_date", "-go", "--goto", help="Move the cursor to a date(YYYY-MM-DD)"
 )
-@click.option("today", "-today", "--today", is_flag=True, help="Read today's messages.")
+@click.option("today", "-today", is_flag=True, help="Read today's messages.")
 @click.option(
     "yesterday",
-    "-yday",
-    "--yesterday",
+    "-yesterday",
     is_flag=True,
     help="Read yesterday's messages.",
 )
-@click.option("date_prefix", "-date", "--date", help="Read messages of a date.")
-@click.option("count", "-count", "--count", help="Count messages of a date.")
+@click.option("date_prefix", "-date", help="Read messages of a date.")
+@click.option("count", "-count", help="Count messages of a date.")
 @click.option(
     "pub", "-pub", "--public", is_flag=True, help="Read my public messages only."
 )
@@ -261,10 +258,8 @@ def toggle(ctx: click.Context, entry_id: str):
 @click.option(
     "fav", "-fav", "--favorite", is_flag=True, help="Read my favorite messages only."
 )
-@click.option(
-    "limit", "-limit", "--limit", type=int, help="Limit the number of messages."
-)
-@click.option("zen", "-zen", "--zen-mode", is_flag=True, help="Zen mode. (专注模式)")
+@click.option("limit", "-limit", type=int, help="Limit the number of messages.")
+@click.option("zen", "-zen", is_flag=True, help="Zen mode. (专注模式)")
 @click.pass_context
 def tl(
     ctx: click.Context,
@@ -341,7 +336,7 @@ def tl(
 @click.option("link", "--set-link", help="Set the RSS link of my feed.")
 @click.option("title", "--set-title", help="Set the title of my feed.")
 @click.option("author", "--set-author", help="Set the author of my feed.")
-@click.option("force", "-force", "--force", is_flag=True, help="Confirm overwrite.")
+@click.option("force", "-force", is_flag=True, help="Confirm overwrite.")
 @click.pass_context
 def publish(
     ctx: click.Context,
@@ -394,7 +389,7 @@ def toggle_link(ctx: click.Context, _, value):
     callback=toggle_link,
 )
 @click.option("show_list", "-l", "--list", is_flag=True, help="List all feeds.")
-@click.option("follow", "-follow", "--follow", help="Subscribe a feed.")
+@click.option("follow", "-follow", help="Subscribe a feed.")
 @click.option(
     "parser",
     "-p",
@@ -402,26 +397,20 @@ def toggle_link(ctx: click.Context, _, value):
     type=click.Choice(["Base", "HasTitle", "HasSummary"]),
     help="Select a parser.",
 )
-@click.option(
-    "first", "-first", "--first", is_flag=True, help="Read the latest message."
-)
-@click.option("next", "-next", "--next", is_flag=True, help="Read the next message.")
+@click.option("first", "-first", is_flag=True, help="Read the latest message.")
+@click.option("next", "-next", is_flag=True, help="Read the next message.")
 @click.option(
     "goto_date", "-go", "--goto", help="Move the cursor to a date(YYYY-MM-DD)"
 )
-@click.option(
-    "limit", "-limit", "--limit", type=int, help="Limit the number of messages."
-)
+@click.option("limit", "-limit", type=int, help="Limit the number of messages.")
 @click.option("update", "-u", "--update", help="Update a feed.")
-@click.option("feed_id", "-feed", "--feed", help="Show messages of a feed.")
-@click.option("like", "-like", "--like", help="Move an entry to the Favorite bucket.")
+@click.option("feed_id", "-feed", help="Show messages of a feed.")
+@click.option("like", "-like", help="Move an entry to the Favorite bucket.")
 @click.option("new_id", "--set-id", help="Change the id of a feed.")
 @click.option("new_name", "--set-name", help="Change the name of a feed.")
-@click.option("delete", "-delete", "--delete", help="Delete a feed (specify by id).")
-@click.option(
-    "force", "-force", "--force", is_flag=True, help="Force to update or delete."
-)
-@click.option("zen", "-zen", "--zen-mode", is_flag=True, help="Zen mode. (专注模式)")
+@click.option("delete", "-delete", help="Delete a feed (specify by id).")
+@click.option("force", "-force", is_flag=True, help="Force to update or delete.")
+@click.option("zen", "-zen", is_flag=True, help="Zen mode. (专注模式)")
 @click.pass_context
 def news(
     ctx: click.Context,
@@ -512,9 +501,7 @@ def like(ctx: click.Context, entry_id: str):
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("entry_id", nargs=1)
-@click.option(
-    "link", "-link", "--link", is_flag=True, help="Copy the link of an entry."
-)
+@click.option("link", "-link", is_flag=True, help="Copy the link of an entry.")
 @click.pass_context
 def copy(ctx: click.Context, entry_id: str, link: bool):
     """Copy the content/link of an entry. (复制消息内容或消息链接)
@@ -532,12 +519,37 @@ def copy(ctx: click.Context, entry_id: str, link: bool):
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("keyword", nargs=1)
+@click.option("limit", "-limit", type=int, help="Limit the number of results.")
+@click.option("is_tag", "-tag", is_flag=True, help="Search by tag.")
 @click.option(
-    "limit", "-limit", "--limit", type=int, help="Limit the number of results."
+    "is_contain", "-contain", is_flag=True, help="Search entry contains the keyword."
+)
+@click.option(
+    "bucket",
+    "-bucket",
+    default="all",
+    type=click.Choice(["all", "public", "private", "news", "fav"], case_sensitive=False),
+    help="Search in the specific bucket only.",
 )
 @click.pass_context
-def search(ctx: click.Context, keyword: str, limit:int):
-    """Search entries by a tag or a word."""
+def search(
+    ctx: click.Context,
+    keyword: str,
+    limit: int,
+    bucket: str,
+    is_tag: bool,
+    is_contain: bool,
+):
+    """Search entries by a tag or a keyword.
+
+    Examples:
+
+    ago search abc (先搜索标签 'abc', 如果找不到，则自动搜索内容包含 'abc' 消息)
+
+    ago search -tag abc (只搜索标签 'abc')
+
+    ago search -contain abc (不搜索标签，只搜索内容包含 'abc' 的消息)
+    """
     check_init(ctx)
 
     with db.connect_db() as conn:
@@ -545,16 +557,13 @@ def search(ctx: click.Context, keyword: str, limit:int):
 
         if not limit:
             limit = cfg["cli_page_n"]
-        
-        keyword = keyword.strip()
-        if keyword[0] == "#":
-            tag = keyword[1:].strip()
-            if not tag:
-                print(f"Cannot search: {keyword}")
-            else:
-                util.search_by_tag(tag, limit, conn)
+
+        if is_tag:
+            util.search_by_tag(keyword, limit, bucket, conn)
+        elif is_contain:
+            util.search_contains(keyword, limit, bucket, conn)
         else:
-            print(f'Search Keyword: {keyword}')
+            util.search_tag_and_contains(keyword, limit, bucket, conn)
 
 
 if __name__ == "__main__":

@@ -105,6 +105,16 @@ def print_news(msg: FeedEntry, show_link: bool, short_id: bool) -> None:
     print()
 
 
+def print_bucket_msg(msg: FeedEntry, show_link: bool = False) -> None:
+    match Bucket[msg.bucket]:
+        case Bucket.News:
+            print_news(msg, show_link, True)
+        case Bucket.Fav:
+            print_fav_entry(msg)
+        case _:
+            print_my_msg(msg)
+
+
 def print_news_short_id(msg: FeedEntry, show_link: bool) -> None:
     return print_news(msg, show_link, True)
 
@@ -342,10 +352,37 @@ def print_recent_fav(limit: int, conn: Conn) -> None:
     print_entries(entries, False, print_fav_entry)
 
 
-def search_by_tag(tag: str, limit:int, conn: Conn) -> None:
-    print(f"Search Tag: {tag}\n")
-    entries = db.get_by_tag(tag, limit, conn)
-    if not entries:
-        print("Not Found (找不到相关信息)")
+def search_by_tag(tag: str, limit: int, bucket: str, conn: Conn) -> bool:
+    bucket = bucket.capitalize()
+    if bucket == "All":
+        print(f"Search Tag [{tag}] in all buckets\n")
     else:
-        print_entries(entries, False, print_my_msg)
+        print(f"Search Tag [{tag}] in bucket[{bucket}]\n")
+
+    entries = db.get_by_tag(tag, limit, bucket, conn)
+    if not entries:
+        print("Not Found (找不到相关信息)\n")
+        return False
+    else:
+        print_entries(entries, False, print_bucket_msg)
+        return True
+
+
+def search_contains(keyword: str, limit: int, bucket: str, conn: Conn) -> None:
+    bucket = bucket.capitalize()
+    if bucket == "All":
+        print(f"Search Contains [{keyword}] in all buckets\n")
+    else:
+        print(f"Search Contains [{keyword}] in bucket[{bucket}]\n")
+
+    entries = db.search_entry_content(keyword, limit, bucket, conn)
+    if not entries:
+        print("Not Found (找不到相关信息)\n")
+    else:
+        print_entries(entries, False, print_bucket_msg)
+
+
+def search_tag_and_contains(keyword: str, limit: int, bucket: str, conn: Conn) -> None:
+    ok = search_by_tag(keyword, limit, bucket, conn)
+    if not ok:
+        search_contains(keyword, limit, bucket, conn)

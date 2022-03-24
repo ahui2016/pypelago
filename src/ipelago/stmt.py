@@ -68,6 +68,29 @@ Get_by_tag: Final[
     ORDER BY entry.published DESC LIMIT :limit;
     """
 
+Search_entry_content: Final[
+    str
+] = """
+    SELECT * FROM entry WHERE content LIKE :content
+    ORDER BY published DESC LIMIT :limit;
+    """
+
+Get_by_tag_bucket: Final[
+    str
+] = """
+    SELECT id, content, link, published, feed_id, feed_name, bucket
+    FROM tag, entry
+    WHERE bucket=:bucket and tag.name=:name and tag.entry_id=entry.id
+    ORDER BY entry.published DESC LIMIT :limit;
+    """
+
+Search_entry_content_bucket: Final[
+    str
+] = """
+    SELECT * FROM entry WHERE bucket=:bucket and content LIKE :content
+    ORDER BY published DESC LIMIT :limit;
+    """
+
 Get_feed_by_id: Final[
     str
 ] = """
