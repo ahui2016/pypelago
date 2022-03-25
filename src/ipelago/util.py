@@ -40,10 +40,10 @@ def print_fav_entry(msg: FeedEntry, show_link: bool = False) -> None:
     title = f"[{msg.entry_id}] ({msg.feed_id}) {date}"
     print(f"{title}\n{msg.content}")
     print("--------")
+    if msg.feed_name:
+        print(msg.feed_name)
     if msg.link:
         print(msg.link)
-    elif msg.feed_name:
-        print(msg.feed_name)
     print()
 
 

@@ -42,7 +42,7 @@ CREATE INDEX IF NOT EXISTS idx_entry_bucket_published ON entry(bucket, published
 CREATE TABLE IF NOT EXISTS tag
 (
     name       text       NOT NULL  COLLATE NOCASE,
-    entry_id   REFERENCES entry(id) ON DELETE CASCADE COLLATE NOCASE
+    entry_id   REFERENCES entry(id) COLLATE NOCASE
 );
 
 CREATE INDEX IF NOT EXISTS idx_tag_name ON tag(name);
@@ -115,6 +115,12 @@ Count_entry_content_bucket: Final[
 ] = """
     SELECT count(*) FROM entry WHERE bucket=:bucket and content LIKE :content
     ORDER BY published;
+    """
+
+Get_all_tags: Final[
+    str
+] = """
+    SELECT name FROM tag GROUP BY name;
     """
 
 Get_feed_by_id: Final[
@@ -350,6 +356,12 @@ Update_entry_bucket: Final[
     str
 ] = """
     UPDATE entry SET bucket=:bucket WHERE id=:id;
+    """
+
+Delete_tag_entry: Final[
+    str
+] = """
+    DELETE FROM tag WHERE entry_id=?;
     """
 
 Delete_entry: Final[

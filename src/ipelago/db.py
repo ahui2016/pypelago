@@ -441,7 +441,11 @@ def toggle_entry_bucket(entry: FeedEntry, conn: Conn) -> Result[FeedEntry, str]:
 
 
 def delete_one_entry(entry_id: str, conn: Conn) -> Result[int, str]:
-    return connExec(conn, stmt.Delete_entry, (entry_id,))
+    match connExec(conn, stmt.Delete_entry, (entry_id,)):
+        case Err(e):
+            return Err(e)
+        case Ok():
+            return connExec(conn, stmt.Delete_tag_entry, (entry_id,))
 
 
 def update_my_feed_info(
@@ -503,3 +507,9 @@ def count_entry_content(keyword: str, bucket: str, conn: Conn) -> list[FeedEntry
             {"content": "%" + keyword + "%", "bucket": bucket},
         ).fetchone()
     return row[0]
+
+def get_all_tags(conn:Conn) -> list[str]:
+    tags = []
+    for row in conn.execute(stmt.Get_all_tags):
+        tags.append('#'+row[0])
+    return tags

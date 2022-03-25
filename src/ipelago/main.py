@@ -538,7 +538,7 @@ def copy(ctx: click.Context, entry_id: str, link: bool):
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
-@click.argument("keyword", nargs=1)
+@click.argument("keyword", nargs=1, required=False)
 @click.option("limit", "-limit", type=int, help="Limit the number of results.")
 @click.option("is_tag", "-tag", is_flag=True, help="Search by tag.")
 @click.option(
@@ -553,6 +553,7 @@ def copy(ctx: click.Context, entry_id: str, link: bool):
     ),
     help="Search in the specific bucket only.",
 )
+@click.option("all_tags", "--all-tags", is_flag=True, help="List out all tags.")
 @click.pass_context
 def search(
     ctx: click.Context,
@@ -561,6 +562,7 @@ def search(
     bucket: str,
     is_tag: bool,
     is_contain: bool,
+    all_tags:bool,
 ):
     """Search entries by a tag or a keyword.
 
@@ -574,13 +576,20 @@ def search(
     """
     check_init(ctx)
 
+    if not keyword and not all_tags:
+        print("Error: Missing argument 'KEYWORD'.")
+        ctx.exit()
+
     with db.connect_db() as conn:
         cfg = db.get_cfg(conn).unwrap()
 
         if not limit:
             limit = cfg["cli_page_n"]
 
-        if is_tag:
+        if all_tags:
+            tags = db.get_all_tags(conn)
+            print(f'Found {len(tags)} tags: {" ".join(tags)}\n')
+        elif is_tag:
             util.search_by_tag(keyword, limit, bucket, conn)
         elif is_contain:
             util.search_contains(keyword, limit, bucket, conn)
