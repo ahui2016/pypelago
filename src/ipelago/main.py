@@ -587,7 +587,10 @@ def search(
             limit = cfg["cli_page_n"]
 
         if all_tags:
-            tags = db.get_all_tags(conn)
+            if keyword:
+                tags = db.get_one_tag(keyword, conn)
+            else:
+                tags = db.get_all_tags(conn)
             print(f'Found {len(tags)} tags: {" ".join(tags)}\n')
         elif is_tag:
             util.search_by_tag(keyword, limit, bucket, conn)

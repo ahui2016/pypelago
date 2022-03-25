@@ -122,6 +122,12 @@ Get_all_tags: Final[
 ] = """
     SELECT name FROM tag GROUP BY name;
     """
+Get_one_tag: Final[
+    str
+] = """
+    SELECT name FROM tag WHERE name LIKE ?
+    GROUP BY name;
+    """
 
 Get_feed_by_id: Final[
     str
