@@ -356,6 +356,7 @@ def tl(
 @click.option("link", "--set-link", help="Set the RSS link of my feed.")
 @click.option("title", "--set-title", help="Set the title of my feed.")
 @click.option("author", "--set-author", help="Set the author of my feed.")
+@click.option("output", "-out", "--output", default="", help="Output static files to witch folder.")
 @click.option("force", "-force", is_flag=True, help="Confirm overwrite.")
 @click.pass_context
 def publish(
@@ -365,6 +366,7 @@ def publish(
     title: str,
     author: str,
     info: bool,
+    output:str,
     force: bool,
 ):
     check_init(ctx)
@@ -385,7 +387,7 @@ def publish(
             publish_show_info(conn)
         else:
             check(ctx, check_before_publish(conn), False)
-            publish_html(conn, force)
+            publish_html(conn, output, force)
 
 
 def toggle_link(ctx: click.Context, _, value):
