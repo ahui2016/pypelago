@@ -467,6 +467,16 @@ def get_by_tag(name: str, limit: int, bucket: str, conn: Conn) -> list[FeedEntry
     return [new_entry_from(row) for row in rows]
 
 
+def count_by_tag(name: str, bucket: str, conn: Conn) -> int:
+    if bucket == "All":
+        row = conn.execute(stmt.Count_by_tag, {"name": name}).fetchone()
+    else:
+        row = conn.execute(
+            stmt.Count_by_tag_bucket, {"name": name, "bucket": bucket}
+        ).fetchone()
+    return row[0]
+
+
 def search_entry_content(
     keyword: str, limit: int, bucket: str, conn: Conn
 ) -> list[FeedEntry]:
@@ -480,3 +490,16 @@ def search_entry_content(
             {"content": "%" + keyword + "%", "limit": limit, "bucket": bucket},
         )
     return [new_entry_from(row) for row in rows]
+
+
+def count_entry_content(keyword: str, bucket: str, conn: Conn) -> list[FeedEntry]:
+    if bucket == "All":
+        row = conn.execute(
+            stmt.Count_entry_content, {"content": "%" + keyword + "%"}
+        ).fetchone()
+    else:
+        row = conn.execute(
+            stmt.Count_entry_content_bucket,
+            {"content": "%" + keyword + "%", "bucket": bucket},
+        ).fetchone()
+    return row[0]

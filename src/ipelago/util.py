@@ -359,11 +359,13 @@ def search_by_tag(tag: str, limit: int, bucket: str, conn: Conn) -> bool:
     else:
         print(f"Search Tag [{tag}] in bucket[{bucket}]\n")
 
-    entries = db.get_by_tag(tag, limit, bucket, conn)
-    if not entries:
+    n = db.count_by_tag(tag, bucket, conn)
+    if not n:
         print("Not Found (找不到相关信息)\n")
         return False
     else:
+        entries = db.get_by_tag(tag, limit, bucket, conn)
+        print(f'Found {n} items, show {len(entries)} items.\n')
         print_entries(entries, False, print_bucket_msg)
         return True
 
@@ -375,10 +377,12 @@ def search_contains(keyword: str, limit: int, bucket: str, conn: Conn) -> None:
     else:
         print(f"Search Contains [{keyword}] in bucket[{bucket}]\n")
 
-    entries = db.search_entry_content(keyword, limit, bucket, conn)
-    if not entries:
+    n = db.count_entry_content(keyword, bucket, conn)
+    if not n:
         print("Not Found (找不到相关信息)\n")
     else:
+        entries = db.search_entry_content(keyword, limit, bucket, conn)
+        print(f'Found {n} items, show {len(entries)} items.\n')
         print_entries(entries, False, print_bucket_msg)
 
 
