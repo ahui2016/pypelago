@@ -318,6 +318,12 @@ Get_entry_in_bucket: Final[
     SELECT * FROM entry WHERE bucket=:bucket and id LIKE :id;
     """
 
+Count_public: Final[
+    str
+] = """
+    SELECT count(*) FROM entry WHERE bucket='Public';
+    """
+
 Get_public_limit: Final[
     str
 ] = """
@@ -362,6 +368,12 @@ Update_entry_bucket: Final[
     str
 ] = """
     UPDATE entry SET bucket=:bucket WHERE id=:id;
+    """
+
+Count_tag_by_entry_id: Final[
+    str
+] = """
+    SELECT count(*) FROM tag WHERE entry_id=?;
     """
 
 Delete_tag_entry: Final[

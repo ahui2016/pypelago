@@ -1,73 +1,111 @@
 from pathlib import Path
 import shutil
 import sqlite3
-from typing import Final, cast
+from typing import Final, TypedDict
 import arrow
 from jinja2 import (
-    Template,
     Environment,
     FileSystemLoader,
     PackageLoader,
     select_autoescape,
 )
-from result import Result, Err, Ok
+from result import Result, Err
+from ipelago import stmt
 
 from ipelago.db import get_cfg, get_feed_by_id, get_public_limit
-from ipelago.model import OK, RFC3339, PublicBucketID
+from ipelago.model import OK, RFC3339, Feed, PublicBucketID
 
-output_folder: Final[str] = "public"
+Conn = sqlite3.Connection
+
+default_output_folder: Final[str] = "public"
+
+class Link(TypedDict):
+    name: str
+    href: str
+
+def new_link():
+    return Link(name="", href="")
+
+class Links(TypedDict):
+    index_page: Link
+    next_page: Link
+    prev_page: Link
+    footer: Link
+
+def new_links():
+    return Links(index_page=new_link(), next_page=new_link(), prev_page=new_link(),footer=new_link())
+
 
 try:
     loader = PackageLoader("ipelago")
 except ValueError:
     loader = FileSystemLoader("src/ipelago/templates")
 
-j_env = Environment(loader=loader, autoescape=select_autoescape())
+jinja_env = Environment(loader=loader, autoescape=select_autoescape())
 
 
-def copy_static_files(tmpl: Template, folder:Path) -> None:
+def copy_static_files(src_dir:Path, dst_dir:Path) -> None:
     static_files = ["simple.css", "style.css"]
-    for filename in static_files:
-        dst = folder.joinpath(filename)
+    for name in static_files:
+        dst = dst_dir.joinpath(name)
         if not dst.exists():
-            tmpl_path = cast(str, tmpl.filename)
-            src = Path(tmpl_path).parent.joinpath(filename)
+            src = src_dir.joinpath(name)
             shutil.copyfile(src, dst)
 
 
-def publish_html(conn: sqlite3.Connection, output:str, force: bool) -> None:
-    out = Path(output) if output else Path(output_folder)
-    print(f'\nOutput to {out.resolve()}')
-
-    if not out.exists():
-        print(f'Create folder {out.resolve()}')
-        out.mkdir(parents=True)
+def ensure_dst_dir(dst_dir:Path, force:bool) -> None:
+    if not dst_dir.exists():
+        print(f'Create folder {dst_dir.resolve()}')
+        dst_dir.mkdir(parents=True)
     else:
         if not force:
             print("Error: require '-force' to overwrite.")
             print("请使用 '-force' 参数确认覆盖 output 文件夹的内容。\n")
             return
 
-    cfg = get_cfg(conn).unwrap()
-    entries = get_public_limit("", cfg["web_page_n"], conn)
+def publish_html(conn: Conn, limit:int, output:str, force: bool) -> None:
+    dst_dir = Path(output) if output else Path(default_output_folder)
+    dst_dir = dst_dir.resolve()
+    print(f'\nOutput to {dst_dir}')
+    ensure_dst_dir(dst_dir, force)
+
     feed = get_feed_by_id(PublicBucketID, conn).unwrap()
     feed.updated = arrow.now().format(RFC3339)[:10]
 
-    filename = "index.html"
-    index_tmpl = j_env.get_template(filename)
-    if not index_tmpl.filename:
-        raise ValueError(f"NotFound: {filename}")
+    n = conn.execute(stmt.Count_public).fetchone()[0]
+    if n <= limit:
+        tmpl_name = "index.html"
+        links = new_links()
+        links["index_page"] = Link(name="",href="https://github.com/ahui2016/pypelago")
+        render_write_page(conn, dst_dir, tmpl_name, "index.html", feed,links,"",limit)
 
-    index_html = index_tmpl.render(
+    copy_static_files(src_dir, dst_dir)
+    print("OK.\n")
+
+def render_write_page(
+    conn:Conn, 
+    dst_dir:Path,
+    tmpl_name:str,
+    output_name:str,
+    feed:Feed, 
+    links:Links, 
+    cursor:str, 
+    limit:int
+) -> None:
+    entries = get_public_limit(cursor, limit, conn)
+    tmpl = jinja_env.get_template(tmpl_name)
+    if not tmpl.filename:
+        raise ValueError(f"NotFound: {tmpl_name}")
+
+    html = tmpl.render(
         dict(
             feed=feed,
             entries=entries,
+            links=links,
         )
     )
-    output_file = out.joinpath(filename)
-    output_file.write_text(index_html, encoding="utf-8")
-    copy_static_files(index_tmpl, out)
-    print("OK.\n")
+    output_file = dst_dir.joinpath(output_name)
+    output_file.write_text(html, encoding="utf-8")
 
 
 def check_before_publish(conn: sqlite3.Connection) -> Result[str, str]:

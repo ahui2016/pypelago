@@ -445,7 +445,11 @@ def delete_one_entry(entry_id: str, conn: Conn) -> Result[int, str]:
         case Err(e):
             return Err(e)
         case Ok():
-            return connExec(conn, stmt.Delete_tag_entry, (entry_id,))
+            row = conn.execute(stmt.Count_tag_by_entry_id, (entry_id,)).fetchone()
+            if row[0]:
+                return connExec(conn, stmt.Delete_tag_entry, (entry_id,))
+            else:
+                return OK
 
 
 def update_my_feed_info(
