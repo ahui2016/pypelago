@@ -19,12 +19,15 @@ Conn = sqlite3.Connection
 
 default_output_folder: Final[str] = "public"
 
+
 class Link(TypedDict):
     name: str
     href: str
 
+
 def new_link():
     return Link(name="", href="")
+
 
 class Links(TypedDict):
     index_page: Link
@@ -32,8 +35,14 @@ class Links(TypedDict):
     prev_page: Link
     footer: Link
 
+
 def new_links():
-    return Links(index_page=new_link(), next_page=new_link(), prev_page=new_link(),footer=new_link())
+    return Links(
+        index_page=new_link(),
+        next_page=new_link(),
+        prev_page=new_link(),
+        footer=new_link(),
+    )
 
 
 try:
@@ -44,7 +53,7 @@ except ValueError:
 jinja_env = Environment(loader=loader, autoescape=select_autoescape())
 
 
-def copy_static_files(src_dir:Path, dst_dir:Path) -> None:
+def copy_static_files(src_dir: Path, dst_dir: Path) -> None:
     static_files = ["simple.css", "style.css"]
     for name in static_files:
         dst = dst_dir.joinpath(name)
@@ -53,21 +62,27 @@ def copy_static_files(src_dir:Path, dst_dir:Path) -> None:
             shutil.copyfile(src, dst)
 
 
-def ensure_dst_dir(dst_dir:Path, force:bool) -> None:
+def ensure_dst_dir(dst_dir: Path, force: bool) -> bool:
+    """Return False if encounter an error."""
     if not dst_dir.exists():
-        print(f'Create folder {dst_dir.resolve()}')
+        print(f"Create folder {dst_dir.resolve()}")
         dst_dir.mkdir(parents=True)
+        return True
     else:
         if not force:
             print("Error: require '-force' to overwrite.")
             print("请使用 '-force' 参数确认覆盖 output 文件夹的内容。\n")
-            return
+            return False
+    return True
 
-def publish_html(conn: Conn, limit:int, output:str, force: bool) -> None:
+
+def publish_html(conn: Conn, limit: int, output: str, force: bool) -> None:
     dst_dir = Path(output) if output else Path(default_output_folder)
     dst_dir = dst_dir.resolve()
-    print(f'\nOutput to {dst_dir}')
-    ensure_dst_dir(dst_dir, force)
+    print(f"\nOutput to {dst_dir}")
+    ok = ensure_dst_dir(dst_dir, force)
+    if not ok:
+        return
 
     feed = get_feed_by_id(PublicBucketID, conn).unwrap()
     feed.updated = arrow.now().format(RFC3339)[:10]
@@ -76,21 +91,25 @@ def publish_html(conn: Conn, limit:int, output:str, force: bool) -> None:
     if n <= limit:
         tmpl_name = "index.html"
         links = new_links()
-        links["index_page"] = Link(name="",href="https://github.com/ahui2016/pypelago")
-        render_write_page(conn, dst_dir, tmpl_name, "index.html", feed,links,"",limit)
+        links["index_page"] = Link(name="", href="https://github.com/ahui2016/pypelago")
+        render_write_page(
+            conn, dst_dir, tmpl_name, "index.html", feed, links, "", limit
+        )
 
+    src_dir = Path(__file__).parent.joinpath("templates")
     copy_static_files(src_dir, dst_dir)
     print("OK.\n")
 
+
 def render_write_page(
-    conn:Conn, 
-    dst_dir:Path,
-    tmpl_name:str,
-    output_name:str,
-    feed:Feed, 
-    links:Links, 
-    cursor:str, 
-    limit:int
+    conn: Conn,
+    dst_dir: Path,
+    tmpl_name: str,
+    output_name: str,
+    feed: Feed,
+    links: Links,
+    cursor: str,
+    limit: int,
 ) -> None:
     entries = get_public_limit(cursor, limit, conn)
     tmpl = jinja_env.get_template(tmpl_name)

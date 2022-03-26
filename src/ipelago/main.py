@@ -356,7 +356,16 @@ def tl(
 @click.option("link", "--set-link", help="Set the RSS link of my feed.")
 @click.option("title", "--set-title", help="Set the title of my feed.")
 @click.option("author", "--set-author", help="Set the author of my feed.")
-@click.option("output", "-out", "--output", default="", help="Output static files to witch folder.")
+@click.option(
+    "output",
+    "-out",
+    "--output",
+    default="",
+    help="Output static files to witch folder.",
+)
+@click.option(
+    "page_n", "-n", "--page-n", type=int, help="How many items are shown per page."
+)
 @click.option("force", "-force", is_flag=True, help="Confirm overwrite.")
 @click.pass_context
 def publish(
@@ -366,12 +375,17 @@ def publish(
     title: str,
     author: str,
     info: bool,
-    output:str,
+    output: str,
+    page_n: int,
     force: bool,
 ):
     check_init(ctx)
 
     with db.connect_db() as conn:
+        cfg = db.get_cfg(conn).unwrap()
+        if not page_n or page_n <= 0:
+            page_n = cfg["web_page_n"]
+
         if gui:
             check_tk(tk_my_feed_info(conn))
         elif info:
@@ -387,7 +401,7 @@ def publish(
             publish_show_info(conn)
         else:
             check(ctx, check_before_publish(conn), False)
-            publish_html(conn, output, force)
+            publish_html(conn, page_n, output, force)
 
 
 def toggle_link(ctx: click.Context, _, value):
@@ -564,7 +578,7 @@ def search(
     bucket: str,
     is_tag: bool,
     is_contain: bool,
-    all_tags:bool,
+    all_tags: bool,
 ):
     """Search entries by a tag or a keyword.
 
