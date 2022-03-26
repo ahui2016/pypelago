@@ -17,6 +17,10 @@
   font-size: small;
 }
 
+.NavButtons {
+  text-align: center;
+}
+
 footer {
   margin-top: 1.5rem;
   padding-top: 1.5rem;

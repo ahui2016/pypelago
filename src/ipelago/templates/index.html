@@ -36,6 +36,15 @@
       {% endfor %}
     </div>
 
+    <div class="NavButtons">
+      {% if links.prev_page.href|length %}
+        <a href="{{ links.prev_page.href }}">&lt;&lt; {{ links.prev_page.name }}</a>
+      {% endif %}
+      {% if links.next_page.href|length %}
+        <a href="{{ links.next_page.href }}">{{links.next_page.name }} &gt;&gt;</a>
+      {% endif %}
+    </div>
+
     {% if entries|length is gt 5 and links.footer.name|length %}
     <footer>
       <a href="{{ links.footer.href }}">{{ links.footer.name }}</a>

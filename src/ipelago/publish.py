@@ -12,12 +12,14 @@ from jinja2 import (
 from result import Result, Err
 from ipelago import stmt
 
-from ipelago.db import get_cfg, get_feed_by_id, get_public_limit
-from ipelago.model import OK, RFC3339, Feed, PublicBucketID
+from ipelago.db import get_feed_by_id, get_public_limit
+from ipelago.model import OK, RFC3339, Feed, FeedEntry, PublicBucketID
 
 Conn = sqlite3.Connection
 
 default_output_folder: Final[str] = "public"
+
+index_html: Final[str] = "index.html"
 
 
 class Link(TypedDict):
@@ -53,12 +55,19 @@ except ValueError:
 jinja_env = Environment(loader=loader, autoescape=select_autoescape())
 
 
-def copy_static_files(src_dir: Path, dst_dir: Path) -> None:
+def get_src_dir() -> Path:
+    tmpl = jinja_env.get_template(index_html)
+    if not tmpl.filename:
+        raise ValueError(f"NotFound: {index_html}")
+    return Path(tmpl.filename).parent
+
+
+def copy_static_files(dst_dir: Path) -> None:
     static_files = ["simple.css", "style.css"]
     for name in static_files:
         dst = dst_dir.joinpath(name)
         if not dst.exists():
-            src = src_dir.joinpath(name)
+            src = get_src_dir.joinpath(name)
             shutil.copyfile(src, dst)
 
 
@@ -87,32 +96,78 @@ def publish_html(conn: Conn, limit: int, output: str, force: bool) -> None:
     feed = get_feed_by_id(PublicBucketID, conn).unwrap()
     feed.updated = arrow.now().format(RFC3339)[:10]
 
-    n = conn.execute(stmt.Count_public).fetchone()[0]
-    if n <= limit:
-        tmpl_name = "index.html"
-        links = new_links()
-        links["index_page"] = Link(name="", href=feed.website)
-        links["footer"] = Link(name=feed.website, href=feed.website)
-        render_write_page(
-            conn, dst_dir, tmpl_name, "index.html", feed, links, "", limit
-        )
+    total = conn.execute(stmt.Count_public).fetchone()[0]
+    if total <= limit:
+        entries = get_public_limit("", limit, conn)
+        render_index_page(dst_dir, feed, entries)
+    else:
+        render_all_pages(dst_dir, feed, total, limit, conn)
 
-    src_dir = Path(__file__).parent.joinpath("templates")
-    copy_static_files(src_dir, dst_dir)
+    copy_static_files(dst_dir)
     print("OK.\n")
 
 
+def get_output_names(current_page: int, total: int, page_limit: int) -> dict:
+    names: dict = {}
+    if current_page > 1:
+        names["next"] = f"p{current_page-1}.html"
+
+    if total - current_page * page_limit < page_limit:
+        names["prev"] = index_html
+    else:
+        names["prev"] = f"p{current_page+1}.html"
+
+    if total - current_page * page_limit <= 0:
+        names["output"] = index_html
+        names["prev"] = ""
+    else:
+        names["output"] = f"p{current_page}.html"
+
+    return names
+
+
+def render_all_pages(
+    dst_dir: Path, feed: Feed, total: int, limit: int, conn: Conn
+) -> None:
+    page = 0
+    cursor: str = ""
+
+    while True:
+        page += 1
+        names = get_output_names(page, total, limit)
+        footer = (
+            Link(name=feed.website, href=feed.website)
+            if names["output"] == index_html
+            else new_link()
+        )
+        links = Links(
+            index_page=Link(name="", href=index_html),
+            prev_page=Link(name="Prev (上一页)", href=names.get("prev", "")),
+            next_page=Link(name="Next (下一页)", href=names.get("next", "")),
+            footer=footer,
+        )
+        entries = get_public_limit(cursor, limit, conn)
+        cursor = entries[-1].published
+        render_write_page(dst_dir, index_html, names["output"], feed, links, entries)
+        if names["output"] == index_html:
+            break
+
+
+def render_index_page(dst_dir: Path, feed: Feed, entries: list[FeedEntry]) -> None:
+    links = new_links()
+    links["index_page"] = Link(name="", href=feed.website)
+    links["footer"] = Link(name=feed.website, href=feed.website)
+    render_write_page(dst_dir, index_html, index_html, feed, links, entries)
+
+
 def render_write_page(
-    conn: Conn,
     dst_dir: Path,
     tmpl_name: str,
     output_name: str,
     feed: Feed,
     links: Links,
-    cursor: str,
-    limit: int,
+    entries: list[FeedEntry],
 ) -> None:
-    entries = get_public_limit(cursor, limit, conn)
     tmpl = jinja_env.get_template(tmpl_name)
     if not tmpl.filename:
         raise ValueError(f"NotFound: {tmpl_name}")
