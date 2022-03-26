@@ -214,19 +214,19 @@ def retrieve_feed(feed_url: str, conn: Conn) -> Result[FeedParserDict, str]:
     return Ok(feedparser.parse(r.text))
 
 
-def subscribe(link: str, parser: str, conn: Conn) -> None:
-    e = db.check_before_subscribe(link, conn).err()
+def subscribe(feed_link: str, parser: str, conn: Conn) -> None:
+    e = db.check_before_subscribe(feed_link, conn).err()
     if e:
         print(e)
         return
 
-    match retrieve_feed(link, conn):
+    match retrieve_feed(feed_link, conn):
         case Err(e):
             print(e)
             return
         case Ok(parser_dict):
             feed_title = utf8_byte_truncate(parser_dict.feed.title, ShortStrSizeLimit)
-            feed_id = db.subscribe_feed(link, feed_title, parser, conn)
+            feed_id = db.subscribe_feed(feed_link, feed_title, parser, conn)
             print_subs_list(conn, feed_id)
             entries = feed_to_entries(feed_id, feed_title, parser, parser_dict, True)
             db.insert_entries(entries, conn)
@@ -234,7 +234,7 @@ def subscribe(link: str, parser: str, conn: Conn) -> None:
 
 
 def retrieve_and_update(feed: Feed, verbose: bool, conn: Conn) -> None:
-    match retrieve_feed(feed.link, conn):
+    match retrieve_feed(feed.feed_link, conn):
         case Err(e):
             print(e)
             return
@@ -278,11 +278,11 @@ def print_subs_list(conn: Conn, feed_id: str = "") -> None:
     print()
     if feed_id:
         feed = sl[0]
-        print(f"[{feed.feed_id}] {feed.title}\n{feed.link}\n")
+        print(f"[{feed.feed_id}] {feed.title}\n{feed.feed_link}\n")
         return
 
     for feed in sl:
-        print(f"[{feed.feed_id}] {feed.title}\n{feed.link}\n")
+        print(f"[{feed.feed_id}] {feed.title}\n{feed.feed_link}\n")
 
 
 def get_one_from(entries: list[FeedEntry], prefix: str) -> Result[FeedEntry, str]:
@@ -365,7 +365,7 @@ def search_by_tag(tag: str, limit: int, bucket: str, conn: Conn) -> bool:
         return False
     else:
         entries = db.get_by_tag(tag, limit, bucket, conn)
-        print(f"Found {n} items, show {len(entries)} items.\n")
+        print(f"Found {n} items, showing {len(entries)} items.\n")
         print_entries(entries, False, print_bucket_msg)
         return True
 
@@ -382,7 +382,7 @@ def search_contains(keyword: str, limit: int, bucket: str, conn: Conn) -> None:
         print("Not Found (找不到相关信息)\n")
     else:
         entries = db.search_entry_content(keyword, limit, bucket, conn)
-        print(f"Found {n} items, show {len(entries)} items.\n")
+        print(f"Found {n} items, showing {len(entries)} items.\n")
         print_entries(entries, False, print_bucket_msg)
 
 

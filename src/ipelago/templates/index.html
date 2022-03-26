@@ -12,7 +12,11 @@
     <title>{{ feed.title }}</title>
   </head>
   <body>
-    <h1>{{ feed.title }}</h1>
+    {% if links.index_page.href|length %}
+      <h1><a href="{{ links.index_page.href }}">{{ feed.title }}</a></h1>
+    {% else %}
+      <h1>{{ feed.title }}</h1>
+    {% endif %}
     <div class="text-right small">
       <span>Author: {{ feed.author_name }}</span>
       <br />
@@ -31,6 +35,12 @@
       </div>
       {% endfor %}
     </div>
+
+    {% if entries|length is gt 5 and links.footer.name|length %}
+    <footer>
+      <a href="{{ links.footer.href }}">{{ links.footer.name }}</a>
+    </footer>
+    {% endif %}
 
     {# a comment #}
   </body>

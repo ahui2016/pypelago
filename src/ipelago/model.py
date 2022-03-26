@@ -52,7 +52,7 @@ def my_bucket(pri: bool) -> Bucket:
 class FeedEntry:
     entry_id: str  # ShortID
     content: str  # size limit: 1024 bytes
-    link: str  # # size limit: 256 bytes
+    link: str  # size limit: 256 bytes
     published: str  # RFC3339(UTC)
     feed_id: str  # (不用于 xml)
     feed_name: str  # (不用于 xml)
@@ -104,7 +104,8 @@ def new_entry_from(row: dict) -> FeedEntry:
 @dataclass
 class Feed:
     feed_id: str  # Publice/Private/DateID
-    link: str  # link to the feed itself (订阅地址)
+    feed_link: str  # link to the feed itself (订阅地址) size limit: 256 bytes
+    website: str
     title: str  # size limit: 256 bytes
     author_name: str  # size limit: 256 bytes
     updated: str  # RFC3339
@@ -114,7 +115,8 @@ class Feed:
     def to_dict(self) -> dict:
         return dict(
             id=self.feed_id,
-            link=self.link,
+            feed_link=self.feed_link,
+            website=self.website,
             title=self.title,
             author_name=self.author_name,
             updated=self.updated,
@@ -126,7 +128,8 @@ class Feed:
 def new_feed_from(row: dict) -> Feed:
     return Feed(
         feed_id=row["id"],
-        link=row["link"],
+        feed_link=row["feed_link"],
+        website=row["website"],
         title=row["title"],
         author_name=row["author_name"],
         updated=row["updated"],

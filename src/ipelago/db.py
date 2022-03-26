@@ -5,6 +5,7 @@ from typing import Any, Final, Iterable
 import arrow
 from result import Ok, Err, Result
 from appdirs import AppDirs
+from ipelago import model
 from ipelago.model import (
     OK,
     RFC3339,
@@ -15,10 +16,6 @@ from ipelago.model import (
     FeedEntry,
     PrivateBucketID,
     PublicBucketID,
-    default_config,
-    new_entry_from,
-    new_feed_from,
-    next_feed_id,
 )
 from ipelago.shortid import first_id, parse_id
 import ipelago.stmt as stmt
@@ -75,7 +72,7 @@ def update_cfg(cfg: AppConfig, conn: Conn) -> None:
 def init_cfg(conn: Conn) -> None:
     cfg = get_cfg(conn)
     if cfg.err():
-        default_cfg = default_config()
+        default_cfg = model.default_config()
         conn.execute(stmt.Insert_metadata, (app_config_name, json.dumps(default_cfg)))
 
 
@@ -107,20 +104,20 @@ def get_feed_by_id(feed_id: str, conn: Conn) -> Result[Feed, str]:
     row = conn.execute(stmt.Get_feed_by_id, (feed_id,)).fetchone()
     if not row:
         return Err(NoResultError)
-    return Ok(new_feed_from(row))
+    return Ok(model.new_feed_from(row))
 
 
 def init_my_feeds(title: str, conn: Conn) -> None:
     if get_feed_by_id(PublicBucketID, conn).err():
         conn.execute(
-            stmt.Insert_my_feed, {"id": PublicBucketID, "link": "", "title": title}
+            stmt.Insert_my_feed, {"id": PublicBucketID, "feed_link": "", "title": title}
         )
     if get_feed_by_id(PrivateBucketID, conn).err():
         conn.execute(
             stmt.Insert_my_feed,
             {
                 "id": PrivateBucketID,
-                "link": PrivateBucketID,
+                "feed_link": PrivateBucketID,
                 "title": "My Private Channel",
             },
         )
@@ -129,7 +126,7 @@ def init_my_feeds(title: str, conn: Conn) -> None:
             stmt.Insert_my_feed,
             {
                 "id": FavBucketID,
-                "link": FavBucketID,
+                "feed_link": FavBucketID,
                 "title": "The Favorite Bucket",
             },
         )
@@ -167,7 +164,7 @@ def get_my_next(cursor: str, conn: Conn) -> Result[FeedEntry, str]:
         row = conn.execute(stmt.Get_my_first_entry).fetchone()
     if not row:
         return Err(NoResultError)
-    return Ok(new_entry_from(row))
+    return Ok(model.new_entry_from(row))
 
 
 def my_cursor_goto(date_prefix: str, conn: Conn) -> Result[FeedEntry, str]:
@@ -175,7 +172,7 @@ def my_cursor_goto(date_prefix: str, conn: Conn) -> Result[FeedEntry, str]:
     if not row:
         return Err("Not Found. (找不到该命令指定的消息)")
 
-    return Ok(new_entry_from(row))
+    return Ok(model.new_entry_from(row))
 
 
 def news_cursor_goto(date_prefix: str, conn: Conn) -> Result[FeedEntry, str]:
@@ -183,7 +180,7 @@ def news_cursor_goto(date_prefix: str, conn: Conn) -> Result[FeedEntry, str]:
     if not row:
         return Err("Not Found. (找不到该命令指定的消息)")
 
-    return Ok(new_entry_from(row))
+    return Ok(model.new_entry_from(row))
 
 
 def get_news_next(cursor: str, conn: Conn) -> Result[FeedEntry, str]:
@@ -197,7 +194,7 @@ def get_news_next(cursor: str, conn: Conn) -> Result[FeedEntry, str]:
     if not row:
         return Err(NoResultError)
 
-    return Ok(new_entry_from(row))
+    return Ok(model.new_entry_from(row))
 
 
 def get_by_date(date: str, limit: int, bucket: str, conn: Conn) -> list[FeedEntry]:
@@ -205,7 +202,7 @@ def get_by_date(date: str, limit: int, bucket: str, conn: Conn) -> list[FeedEntr
     for row in conn.execute(
         stmt.Get_by_date, {"bucket": bucket, "published": date + "%", "limit": limit}
     ):
-        result.append(new_entry_from(row))
+        result.append(model.new_entry_from(row))
     return result
 
 
@@ -214,7 +211,7 @@ def get_by_date_my_buckets(date: str, limit: int, conn: Conn) -> list[FeedEntry]
     for row in conn.execute(
         stmt.Get_by_date_my_buckets, {"published": date + "%", "limit": limit}
     ):
-        result.append(new_entry_from(row))
+        result.append(model.new_entry_from(row))
     return result
 
 
@@ -236,7 +233,7 @@ def get_public_limit(cursor: str, limit: int, conn: Conn) -> list[FeedEntry]:
     for row in conn.execute(
         stmt.Get_public_limit, {"published": cursor, "limit": limit}
     ):
-        result.append(new_entry_from(row))
+        result.append(model.new_entry_from(row))
     return result
 
 
@@ -245,7 +242,7 @@ def get_news_by_feed(feed_id: str, limit: int, conn: Conn) -> list[FeedEntry]:
     for row in conn.execute(
         stmt.Get_news_by_feed, {"feed_id": feed_id, "limit": limit}
     ):
-        result.append(new_entry_from(row))
+        result.append(model.new_entry_from(row))
     return result
 
 
@@ -261,7 +258,7 @@ def get_subs_list(conn: Conn, feed_id: str = "") -> list[Feed]:
             subs_list.append(feed)
     else:
         for row in conn.execute(stmt.Get_subs_list):
-            subs_list.append(new_feed_from(row))
+            subs_list.append(model.new_feed_from(row))
     return subs_list
 
 
@@ -328,28 +325,29 @@ def update_entries(feed_id: str, entries: list[FeedEntry], conn: Conn) -> None:
 def new_feed_id(conn: Conn) -> str:
     timestamp = 0
     while True:
-        feed_id, timestamp = next_feed_id(timestamp)
+        feed_id, timestamp = model.next_feed_id(timestamp)
         row = conn.execute(stmt.Get_feed_id, (feed_id,)).fetchone()
         if not row:
             return feed_id
 
 
-def check_before_subscribe(link: str, conn: Conn) -> Result[str, str]:
-    row = conn.execute(stmt.Get_feed_link, (link,)).fetchone()
+def check_before_subscribe(feed_link: str, conn: Conn) -> Result[str, str]:
+    row = conn.execute(stmt.Get_feed_link, (feed_link,)).fetchone()
     if row:
-        return Err(f"Exists(不可重复订阅): {link}")
+        return Err(f"Exists(不可重复订阅): {feed_link}")
     else:
         return OK
 
 
-def subscribe_feed(link: str, title: str, parser: str, conn: Conn) -> str:
+def subscribe_feed(feed_link: str, title: str, parser: str, conn: Conn) -> str:
     """Return the feed_id if nothing wrong."""
     feed_id = new_feed_id(conn)
     conn.execute(
         stmt.Insert_feed,
         dict(
             id=feed_id,
-            link=link,
+            feed_link=feed_link,
+            website="",
             title=title,
             author_name="",
             updated=arrow.now().format(RFC3339),
@@ -399,7 +397,7 @@ def get_entry_by_prefix(prefix: str, conn: Conn) -> list[FeedEntry]:
     if not rows:
         return []
 
-    return [new_entry_from(row) for row in rows]
+    return [model.new_entry_from(row) for row in rows]
 
 
 def get_entry_in_bucket(bucket: str, prefix: str, conn: Conn) -> list[FeedEntry]:
@@ -409,7 +407,7 @@ def get_entry_in_bucket(bucket: str, prefix: str, conn: Conn) -> list[FeedEntry]
 
     if not rows:
         return []
-    return [new_entry_from(row) for row in rows]
+    return [model.new_entry_from(row) for row in rows]
 
 
 def move_to_fav(entry_id: str, conn: Conn) -> str:
@@ -423,7 +421,7 @@ def get_recent_fav(limit: int, conn: Conn) -> list[FeedEntry]:
     for row in conn.execute(
         stmt.Get_entries_limit, {"bucket": Bucket.Fav.name, "limit": limit}
     ):
-        entries.append(new_entry_from(row))
+        entries.append(model.new_entry_from(row))
     return entries
 
 
@@ -453,10 +451,12 @@ def delete_one_entry(entry_id: str, conn: Conn) -> Result[int, str]:
 
 
 def update_my_feed_info(
-    link: str, title: str, author: str, conn: Conn
+    feed_link: str, website: str, title: str, author: str, conn: Conn
 ) -> Result[int, str]:
     return connExec(
-        conn, stmt.Update_my_feed_info, {"link": link, "title": title, "author": author}
+        conn,
+        stmt.Update_my_feed_info,
+        {"feed_link": feed_link, "website": website, "title": title, "author": author},
     )
 
 
@@ -472,7 +472,7 @@ def get_by_tag(name: str, limit: int, bucket: str, conn: Conn) -> list[FeedEntry
         rows = conn.execute(
             stmt.Get_by_tag_bucket, {"name": name, "limit": limit, "bucket": bucket}
         )
-    return [new_entry_from(row) for row in rows]
+    return [model.new_entry_from(row) for row in rows]
 
 
 def count_by_tag(name: str, bucket: str, conn: Conn) -> int:
@@ -497,7 +497,7 @@ def search_entry_content(
             stmt.Search_entry_content_bucket,
             {"content": "%" + keyword + "%", "limit": limit, "bucket": bucket},
         )
-    return [new_entry_from(row) for row in rows]
+    return [model.new_entry_from(row) for row in rows]
 
 
 def count_entry_content(keyword: str, bucket: str, conn: Conn) -> list[FeedEntry]:

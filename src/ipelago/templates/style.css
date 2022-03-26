@@ -16,3 +16,9 @@
   color: gray;
   font-size: small;
 }
+
+footer {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #ccc;
+}

@@ -91,7 +91,8 @@ def publish_html(conn: Conn, limit: int, output: str, force: bool) -> None:
     if n <= limit:
         tmpl_name = "index.html"
         links = new_links()
-        links["index_page"] = Link(name="", href="https://github.com/ahui2016/pypelago")
+        links["index_page"] = Link(name="", href=feed.website)
+        links["footer"] = Link(name=feed.website, href=feed.website)
         render_write_page(
             conn, dst_dir, tmpl_name, "index.html", feed, links, "", limit
         )
@@ -129,7 +130,7 @@ def render_write_page(
 
 def check_before_publish(conn: sqlite3.Connection) -> Result[str, str]:
     feed = get_feed_by_id(PublicBucketID, conn).unwrap()
-    if feed.link == "" or feed.title == "" or feed.author_name == "":
+    if feed.feed_link == "" or feed.title == "" or feed.author_name == "":
         return Err(
             """
 第一次发布需要使用 'ago publish -g' 命令录入作者名称等信息。
@@ -142,7 +143,9 @@ def check_before_publish(conn: sqlite3.Connection) -> Result[str, str]:
 
 def publish_show_info(conn: sqlite3.Connection) -> None:
     feed = get_feed_by_id(PublicBucketID, conn).unwrap()
-    print("通过 HTML/RSS 对外发布微博客时，对访客显示以下信息：")
+    print("通过 HTML/RSS 对外发布微博客时，对访客显示以下信息：\n")
     print(f"[Title] {feed.title}")
-    print(f"[RSS Link] {feed.link}")
+    print(f"[RSS Link] {feed.feed_link}")
     print(f"[Author] {feed.author_name}")
+    print(f"[Website] {feed.website}")
+    print(f"\n其中 Link 是指 RSS feed 本身的链接, " "Website 可以填写任意网址，通常是你的个人网站或博客的网址。")

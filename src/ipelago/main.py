@@ -348,12 +348,19 @@ def tl(
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
-    "gui", "-g", "--gui-info", is_flag=True, help="Open a GUI window to view/edit info."
+    "gui",
+    "-g",
+    "--gui-info",
+    is_flag=True,
+    help="Open a GUI window to view/edit informations.",
+)
+@click.option("info", "-info", is_flag=True, help="Show informations about my feed.")
+@click.option(
+    "link", "--set-link", help="Set the RSS link of my feed. (RSS feed 本身的链接)"
 )
 @click.option(
-    "info", "-info", "--info", is_flag=True, help="Show informations about my feed."
+    "website", "--set-website", help="Set a URL of my home page. (个人网站或博客的链接)"
 )
-@click.option("link", "--set-link", help="Set the RSS link of my feed.")
 @click.option("title", "--set-title", help="Set the title of my feed.")
 @click.option("author", "--set-author", help="Set the author of my feed.")
 @click.option(
@@ -361,7 +368,7 @@ def tl(
     "-out",
     "--output",
     default="",
-    help="Output static files to witch folder.",
+    help="Output static files to which folder.",
 )
 @click.option(
     "page_n", "-n", "--page-n", type=int, help="How many items are shown per page."
@@ -372,6 +379,7 @@ def publish(
     ctx: click.Context,
     gui: bool,
     link: str,
+    website: str,
     title: str,
     author: str,
     info: bool,
@@ -379,6 +387,20 @@ def publish(
     page_n: int,
     force: bool,
 ):
+    """Publish your microblog to HTML/RSS (生成 HTML 及 RSS 文件)
+
+    第一次发布前需要先使用 'ago publish -g' 命令录入作者名称等信息。
+
+    另外也可使用 'ago publish --set-author' 等命令录入信息。
+
+    Title, Link, Author 必须填写, Website 可不填写。
+
+    其中 Link 是指别人通过 RSS 订阅你的微博客的网址，可先随意填写，
+
+    等发布到到网上后找到正确的网址，再回头修改。
+
+    Website 可以填写任意网址，通常是你的个人网站或博客的网址。
+    """
     check_init(ctx)
 
     with db.connect_db() as conn:
@@ -391,13 +413,16 @@ def publish(
         elif info:
             publish_show_info(conn)
         elif title:
-            db.connExec(conn, stmt.Update_my_feed_title, {"title": title}).unwrap()
+            db.connExec(conn, stmt.Update_my_feed_title, (title,)).unwrap()
             publish_show_info(conn)
         elif link:
-            db.connExec(conn, stmt.Update_my_feed_link, {"link": link}).unwrap()
+            db.connExec(conn, stmt.Update_my_feed_link, (link,)).unwrap()
+            publish_show_info(conn)
+        elif website:
+            db.connExec(conn, stmt.Update_my_feed_website, (website,)).unwrap()
             publish_show_info(conn)
         elif author:
-            db.connExec(conn, stmt.Update_my_feed_author, {"author": author}).unwrap()
+            db.connExec(conn, stmt.Update_my_feed_author, (author,)).unwrap()
             publish_show_info(conn)
         else:
             check(ctx, check_before_publish(conn), False)

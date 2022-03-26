@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS metadata
 CREATE TABLE IF NOT EXISTS feed
 (
     id            text   PRIMARY KEY COLLATE NOCASE,
-    link          text   NOT NULL UNIQUE,
+    feed_link     text   NOT NULL UNIQUE,
+    website       text   NOT NULL,
     title         text   NOT NULL,
     author_name   text   NOT NULL,
     updated       text   NOT NULL,
@@ -173,17 +174,25 @@ Get_feed_id: Final[
 Get_feed_link: Final[
     str
 ] = """
-    SELECT link FROM feed WHERE link=?;
+    SELECT feed_link FROM feed WHERE feed_link=?;
     """
 
 Insert_feed: Final[
     str
 ] = """
     INSERT INTO feed (
-        id, link, title, author_name, updated, notes, parser
+        id, feed_link, website, title, author_name, updated, notes, parser
     ) VALUES (
-        :id, :link, :title, :author_name, :updated, :notes, :parser
+        :id, :feed_link, :website, :title, :author_name, :updated, :notes, :parser
     );
+    """
+
+Insert_my_feed: Final[
+    str
+] = """
+    INSERT INTO feed (
+        id, feed_link, website, title, author_name, updated, notes, parser
+    ) VALUES (:id, :feed_link, "", :title, '', '', '', '');
     """
 
 Update_feed_parser: Final[
@@ -198,34 +207,31 @@ Update_feed_updated: Final[
     UPDATE feed SET updated=:updated WHERE id=:id;
     """
 
-Insert_my_feed: Final[
-    str
-] = """
-    INSERT INTO feed (
-        id, link, title, author_name, updated, notes, parser
-    ) VALUES (:id, :link, :title, '', '', '', '');
-    """
-
 Update_my_feed_info: Final[
     str
 ] = """
-    UPDATE feed SET link=:link, title=:title, author_name=:author
+    UPDATE feed SET feed_link=:feed_link, website=:website, title=:title, author_name=:author
     WHERE id='Public';
     """
 Update_my_feed_link: Final[
     str
 ] = """
-    UPDATE feed SET link=:link WHERE id='Public';
+    UPDATE feed SET feed_link=? WHERE id='Public';
+    """
+Update_my_feed_website: Final[
+    str
+] = """
+    UPDATE feed SET website=? WHERE id='Public';
     """
 Update_my_feed_title: Final[
     str
 ] = """
-    UPDATE feed SET title=:title WHERE id='Public';
+    UPDATE feed SET title=? WHERE id='Public';
     """
 Update_my_feed_author: Final[
     str
 ] = """
-    UPDATE feed SET author_name=:author WHERE id='Public';
+    UPDATE feed SET author_name=? WHERE id='Public';
     """
 
 Get_subs_list: Final[

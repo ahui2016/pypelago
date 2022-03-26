@@ -8,14 +8,14 @@ import ipelago.db as db
 import pyperclip
 
 
-def create_window_center(title: str) -> tk.Tk:
+def create_window_center(title: str, width: int = 500, height: int = 250) -> tk.Tk:
     window = tk.Tk()
     window.title(title)
     window.rowconfigure(0, minsize=500, weight=1)
     window.columnconfigure(1, minsize=500, weight=1)
 
-    window_width = 500
-    window_height = 250
+    window_width = width
+    window_height = height
     screen_width = window.winfo_screenwidth()
     screen_height = window.winfo_screenheight()
     x_cordinate = int((screen_width / 2) - (window_width / 2))
@@ -47,7 +47,7 @@ def get_text(form_input: tk.Entry | tk.Text) -> str:
 
 def tk_my_feed_info(conn: sqlite3.Connection) -> None:
     feed = db.get_feed_by_id(PublicBucketID, conn).unwrap()
-    window = create_window_center("info - ipelago")
+    window = create_window_center("info - ipelago", 500, 280)
 
     label = tk.Label(text="Informations of my feed", pady=5)
     label.pack(pady=5)
@@ -57,9 +57,10 @@ def tk_my_feed_info(conn: sqlite3.Connection) -> None:
 
     tk.Label(master=form, text=" ").grid(row=0, column=0)
     title_input = create_input(form, "Title", feed.title, 1)
-    link_input = create_input(form, "Link", feed.link, 2)
+    link_input = create_input(form, "Link", feed.feed_link, 2)
     author_input = create_input(form, "Author", feed.author_name, 3)
-    tk.Label(master=form, text=" ").grid(row=4, column=0)
+    site_input = create_input(form, "Website", feed.website, 4)
+    tk.Label(master=form, text=" ").grid(row=5, column=0)
 
     buttons = tk.Frame()
     buttons.pack(pady=5)
@@ -68,7 +69,8 @@ def tk_my_feed_info(conn: sqlite3.Connection) -> None:
         title = get_text(title_input)
         link = get_text(link_input)
         author = get_text(author_input)
-        db.update_my_feed_info(link, title, author, conn).unwrap()
+        website = get_text(site_input)
+        db.update_my_feed_info(link, website, title, author, conn).unwrap()
         window.quit()
         publish_show_info(conn)
 
