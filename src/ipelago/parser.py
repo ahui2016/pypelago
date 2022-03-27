@@ -106,21 +106,3 @@ def feed_to_entries(
             return rss_to_entries(feed_id, feed_title, parser_dict, False, True)
         case _:
             return rss_to_entries(feed_id, feed_title, parser_dict, False, False)
-
-
-"""
-def messages_to_json(entries: list[FeedEntry]) -> Result[str, str]:
-    m_json = json.dumps(entries, ensure_ascii=False)
-    news_size = len(m_json)
-    if news_size > FeedSizeLimit:
-        # 如果体积太大，取一半消息，如果还是太大，就返回错误。
-        entries = entries[: len(entries) // 2]
-        m_json = json.dumps(entries, ensure_ascii=False)
-        news_size = len(m_json)
-        if news_size > FeedSizeLimit:
-            return Err(
-                f"feed size({format_size(news_size)}) > limit({format_size(FeedSizeLimit)})",
-            )
-
-    return Ok(m_json)
-"""

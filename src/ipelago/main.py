@@ -525,21 +525,26 @@ def news(
         elif new_id:
             check_id(ctx, feed_id)
             """这是既有 new_id 也有 feed_id 的情形"""
-            check(ctx, db.update_feed_id(new_id, feed_id, conn), False)
-            util.print_subs_list(conn, new_id)
+            if new_id == 'all':
+                click.echo("ID 不允许设置为 'all'")
+            else:
+                check(ctx, db.update_feed_id(new_id, feed_id, conn), False)
+                util.print_subs_list(conn, new_id)
         elif new_name:
             check_id(ctx, feed_id)
             """这是既有 new_name 也有 feed_id 的情形"""
             check(ctx, db.update_feed_title(new_name, feed_id, conn), False)
             util.print_subs_list(conn, feed_id)
         elif feed_id:
-            """这是只有 feed_id, 没有 new_id 的情形"""
+            """这是只有 feed_id, 没有 new_name 没有 new_id 的情形"""
+            total = conn.execute(stmt.Count_by_feed_id, (feed_id,)).fetchone()[0]
             entries = db.get_news_by_feed(feed_id, limit, conn)
+            if total > 0:
+                print(f"\nTotal {total} items in [ID:{feed_id}], showing {len(entries)} items.\n")
             util.print_entries(entries, cfg["news_show_link"], util.print_news_short_id)
         elif delete:
-            if not force:
-                click.echo("Error: require '-force' to delete a feed.")
-                ctx.exit()
+            util.print_subs_list(conn, delete)
+            click.confirm("Confirm deletion (确认删除)", abort=True)
             click.echo(db.delete_feed(delete, conn))
         elif goto_date:
             util.news_cursor_goto(goto_date, conn)

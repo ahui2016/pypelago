@@ -109,7 +109,7 @@ def publish_rss(conn: Conn, feed: Feed, dst_dir: Path) -> None:
 
 
 def publish_html(conn: Conn, feed: Feed, limit: int, dst_dir: Path) -> None:
-    total = conn.execute(stmt.Count_public).fetchone()[0]
+    total = conn.execute(stmt.Count_by_feed_id, (PublicBucketID,)).fetchone()[0]
     if total <= limit:
         entries = get_public_limit("", limit, conn)
         render_index_page(dst_dir, feed, entries)

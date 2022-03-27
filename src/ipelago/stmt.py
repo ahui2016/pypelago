@@ -324,10 +324,10 @@ Get_entry_in_bucket: Final[
     SELECT * FROM entry WHERE bucket=:bucket and id LIKE :id;
     """
 
-Count_public: Final[
+Count_by_feed_id: Final[
     str
 ] = """
-    SELECT count(*) FROM entry WHERE bucket='Public';
+    SELECT count(*) FROM entry WHERE feed_id=?;
     """
 
 Get_public_limit: Final[
