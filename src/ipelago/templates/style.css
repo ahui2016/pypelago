@@ -1,15 +1,24 @@
+a {
+  text-decoration: none;
+}
+
 .small {
   font-size: small;
 }
 .text-center {
   text-align: center;
 }
-.text-right {
+
+.FeedInfo {
   text-align: right;
+  font-size: small;
+  margin-bottom: 1.5rem;
 }
 
 .FeedEntry {
   margin-bottom: 1.5rem;
+  word-wrap: break-word;
+  /* word-break: break-all; */
 }
 
 .EntryTitle {
@@ -18,7 +27,12 @@
 }
 
 .NavButtons {
+  margin-top: 1.5rem;
   text-align: center;
+}
+
+.NavButtons a + a{
+  margin-left: 1rem;
 }
 
 footer {

@@ -8,23 +8,23 @@
     />
     <link rel="stylesheet" href="simple.css" />
     <link rel="stylesheet" href="style.css" />
-    <link rel="alternate" type="application/atom+xml" href="{{ feed.link }}" />
+    <link rel="alternate" type="application/atom+xml" title="{{ feed.title }}" href="{{ feed.feed_link }}" />
     <title>{{ feed.title }}</title>
   </head>
   <body>
-    {% if links.index_page.href|length %}
+    {% if links.prev_page.href|length %}
       <h1><a href="{{ links.index_page.href }}">{{ feed.title }}</a></h1>
     {% else %}
-      <h1>{{ feed.title }}</h1>
+      <h1><a href="{{ feed.website }}">{{ feed.title }}</a></h1>
     {% endif %}
-    <div class="text-right small">
+    <div class="FeedInfo">
       <span>Author: {{ feed.author_name }}</span>
       <br />
       <span>Updated at: {{ feed.updated }}</span>
     </div>
 
     <div class="MsgList">
-      {% for item in entries %}
+      {% for item in entries|reverse %}
       <div class="FeedEntry">
         <span class="EntryTitle">
           [{{ item.entry_id }}]
@@ -39,15 +39,21 @@
     <div class="NavButtons">
       {% if links.prev_page.href|length %}
         <a href="{{ links.prev_page.href }}">&lt;&lt; {{ links.prev_page.name }}</a>
+        <a href="{{ links.index_page.href }}">〇</a>
       {% endif %}
       {% if links.next_page.href|length %}
         <a href="{{ links.next_page.href }}">{{links.next_page.name }} &gt;&gt;</a>
+      {% elif links.next_page.name|length %}
+        <a style="color: gray;">{{ links.next_page.name }} &gt;&gt;</a>
       {% endif %}
     </div>
 
-    {% if entries|length is gt 5 and links.footer.name|length %}
+    {% if entries|length is gt 3 %}
     <footer>
-      <a href="{{ links.footer.href }}">{{ links.footer.name }}</a>
+      {% if links.footer.name|length %}
+        <a href="{{ links.footer.href }}">{{ links.footer.name }}</a>
+      {% endif %}
+      <p>RSS: <a href="{{feed.feed_link}}">{{feed.feed_link}}</a></p>
     </footer>
     {% endif %}
 

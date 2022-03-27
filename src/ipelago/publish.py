@@ -67,7 +67,7 @@ def copy_static_files(dst_dir: Path) -> None:
     for name in static_files:
         dst = dst_dir.joinpath(name)
         if not dst.exists():
-            src = get_src_dir.joinpath(name)
+            src = get_src_dir().joinpath(name)
             shutil.copyfile(src, dst)
 
 
@@ -142,8 +142,8 @@ def render_all_pages(
         )
         links = Links(
             index_page=Link(name="", href=index_html),
-            prev_page=Link(name="Prev (上一页)", href=names.get("prev", "")),
-            next_page=Link(name="Next (下一页)", href=names.get("next", "")),
+            prev_page=Link(name="Prev", href=names.get("prev", "")),
+            next_page=Link(name="Next", href=names.get("next", "")),
             footer=footer,
         )
         entries = get_public_limit(cursor, limit, conn)

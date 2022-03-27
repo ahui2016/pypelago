@@ -25,6 +25,7 @@ Day: Final[int] = 24 * Hour
 UpdateRateLimit: Final[int] = 1 * Day
 
 db_filename: Final[str] = "pypelago.db"
+feed_filename: Final[str] = "atom.xml"
 app_config_name: Final[str] = "app-config"
 current_id_name: Final[str] = "current-id"
 
@@ -110,25 +111,18 @@ def get_feed_by_id(feed_id: str, conn: Conn) -> Result[Feed, str]:
 def init_my_feeds(title: str, conn: Conn) -> None:
     if get_feed_by_id(PublicBucketID, conn).err():
         conn.execute(
-            stmt.Insert_my_feed, {"id": PublicBucketID, "feed_link": "", "title": title}
+            stmt.Insert_my_feed,
+            {"id": PublicBucketID, "feed_link": "", "title": title},
         )
     if get_feed_by_id(PrivateBucketID, conn).err():
         conn.execute(
             stmt.Insert_my_feed,
-            {
-                "id": PrivateBucketID,
-                "feed_link": PrivateBucketID,
-                "title": "My Private Channel",
-            },
+            {"id": PrivateBucketID, "feed_link": "1", "title": "My Private Channel"},
         )
     if get_feed_by_id(FavBucketID, conn).err():
         conn.execute(
             stmt.Insert_my_feed,
-            {
-                "id": FavBucketID,
-                "feed_link": FavBucketID,
-                "title": "The Favorite Bucket",
-            },
+            {"id": FavBucketID, "feed_link": "2", "title": "The Favorite Bucket"},
         )
 
 
