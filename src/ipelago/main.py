@@ -6,7 +6,7 @@ from ipelago import stmt
 from ipelago import db
 from ipelago.gui import tk_my_feed_info, tk_post_msg
 from ipelago.model import AppConfig, Bucket, my_bucket
-from ipelago.publish import check_before_publish, publish_html, publish_show_info
+from ipelago.publish import check_before_publish, publish_html_rss, publish_show_info
 from ipelago import util
 from . import (
     __version__,
@@ -84,10 +84,13 @@ def set_proxy(ctx, _, value):
             cfg["use_proxy"] = True
         elif value == "false":
             cfg["use_proxy"] = False
+        elif not value.startswith('http'):
+            click.echo("Error: The proxy URL should be start with 'http'")
+            ctx.exit()
         else:
             cfg["http_proxy"] = value
-        db.update_cfg(cfg, conn)
 
+        db.update_cfg(cfg, conn)
         click.echo("OK.")
         click.echo(f"[http_proxy] {cfg['http_proxy']}")
         click.echo(f'[use_proxy] {cfg["use_proxy"]}')
@@ -426,7 +429,7 @@ def publish(
             publish_show_info(conn)
         else:
             check(ctx, check_before_publish(conn), False)
-            publish_html(conn, page_n, output, force)
+            publish_html_rss(conn, page_n, output, force)
 
 
 def toggle_link(ctx: click.Context, _, value):

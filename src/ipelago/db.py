@@ -25,7 +25,6 @@ Day: Final[int] = 24 * Hour
 UpdateRateLimit: Final[int] = 1 * Day
 
 db_filename: Final[str] = "pypelago.db"
-feed_filename: Final[str] = "atom.xml"
 app_config_name: Final[str] = "app-config"
 current_id_name: Final[str] = "current-id"
 
@@ -410,10 +409,10 @@ def move_to_fav(entry_id: str, conn: Conn) -> str:
     return newid
 
 
-def get_recent_fav(limit: int, conn: Conn) -> list[FeedEntry]:
+def get_recent_entries(bucket:str, limit: int, conn: Conn) -> list[FeedEntry]:
     entries = []
     for row in conn.execute(
-        stmt.Get_entries_limit, {"bucket": Bucket.Fav.name, "limit": limit}
+        stmt.Get_entries_limit, {"bucket": bucket, "limit": limit}
     ):
         entries.append(model.new_entry_from(row))
     return entries

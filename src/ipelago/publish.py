@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 import shutil
 import sqlite3
@@ -12,14 +13,16 @@ from jinja2 import (
 from result import Result, Err
 from ipelago import stmt
 
-from ipelago.db import get_feed_by_id, get_public_limit
-from ipelago.model import OK, RFC3339, Feed, FeedEntry, PublicBucketID
+from ipelago.db import get_feed_by_id, get_public_limit, get_recent_entries
+from ipelago.model import OK, RFC3339, Bucket, Feed, FeedEntry, FeedSizeLimit, PublicBucketID
 
 Conn = sqlite3.Connection
 
 default_output_folder: Final[str] = "public"
 
 index_html: Final[str] = "index.html"
+atom_xml: Final[str] = "atom.xml"
+atom_entries_limit: Final[int] = 30  # RSS 最多包含多少条信息
 
 
 class Link(TypedDict):
@@ -85,17 +88,27 @@ def ensure_dst_dir(dst_dir: Path, force: bool) -> bool:
     return True
 
 
-def publish_html(conn: Conn, limit: int, output: str, force: bool) -> None:
+def publish_html_rss(conn: Conn, limit: int, output: str, force: bool) -> None:
     dst_dir = Path(output) if output else Path(default_output_folder)
     dst_dir = dst_dir.resolve()
     print(f"\nOutput to {dst_dir}")
     ok = ensure_dst_dir(dst_dir, force)
     if not ok:
         return
-
     feed = get_feed_by_id(PublicBucketID, conn).unwrap()
     feed.updated = arrow.now().format(RFC3339)[:10]
+    publish_html(conn, feed, limit, dst_dir)
+    publish_rss(conn, feed, dst_dir)
 
+
+def publish_rss(conn: Conn, feed: Feed, dst_dir: Path) -> None:
+    entries = get_recent_entries(Bucket.Public.name, atom_entries_limit, conn)
+    rss = render_atom_rss(atom_xml, feed, entries)
+    output_file = dst_dir.joinpath(atom_xml)
+    output_file.write_text(rss, encoding="utf-8")
+
+
+def publish_html(conn: Conn, feed: Feed, limit: int, dst_dir: Path) -> None:
     total = conn.execute(stmt.Count_public).fetchone()[0]
     if total <= limit:
         entries = get_public_limit("", limit, conn)
@@ -181,6 +194,28 @@ def render_write_page(
     )
     output_file = dst_dir.joinpath(output_name)
     output_file.write_text(html, encoding="utf-8")
+
+def render_atom_rss(
+    tmpl_name: str,
+    feed: Feed,
+    entries: list[FeedEntry],
+) -> str:
+    tmpl = jinja_env.get_template(tmpl_name)
+    if not tmpl.filename:
+        raise ValueError(f"NotFound: {tmpl_name}")
+
+    while True:
+        rss = tmpl.render(
+            dict(
+                feed_uuid=hashlib.sha1(feed.feed_link.encode()).hexdigest(),
+                feed=feed,
+                entries=entries,
+            )
+        )
+        if len(rss) <= FeedSizeLimit:
+            return rss
+        else:
+            entries = entries[:len(entries)//2]
 
 
 def check_before_publish(conn: sqlite3.Connection) -> Result[str, str]:

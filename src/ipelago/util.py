@@ -343,7 +343,7 @@ def toggle_entry_bucket(prefix: str) -> None:
 
 
 def print_recent_fav(limit: int, conn: Conn) -> None:
-    entries = db.get_recent_fav(limit, conn)
+    entries = db.get_recent_entries(Bucket.Fav.name, limit, conn)
     if not entries:
         print("收藏消息：空空如也。")
         print("Try 'ago fav -h' to get help.")
