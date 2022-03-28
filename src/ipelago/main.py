@@ -599,7 +599,7 @@ def copy(ctx: click.Context, entry_id: str, link: bool):
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("keyword", nargs=1, required=False)
 @click.option("limit", "-limit", type=int, help="Limit the number of results.")
-@click.option("is_tag", "-tag", is_flag=True, help="Search by tag.")
+@click.option("is_tag", "-tag", "--by-tag", is_flag=True, help="Search by tag.")
 @click.option(
     "is_contain", "-contain", is_flag=True, help="Search entry contains the keyword."
 )

@@ -19,6 +19,7 @@ ipelago 源于群岛的英文 archipelago, 如果我们每一个人是一座孤�
 
 - 多种方式方便写博文（包括命令行输入、获取剪贴板内容、获取文件内容、通过简陋的 GUI 窗口输入）。
 - 可生成静态网站 (包括 HTML 和 RSS), 这些静态文件可通过 GitHub Pages 或类似的免费服务搭建你的私人微博客供别人浏览、订阅。
+- 生成 HTML 的模板、样式可以自定义（自带一个简单模板）。
 - 可区分公开消息与隐私消息，只有公开消息才会对外发布，隐私消息只能本地浏览。
 - 有简单的 #标签 功能与搜索功能。
 
@@ -100,11 +101,33 @@ ipelago 也可一次列举多条消息，但更提倡使用逐条浏览功能，
 - `ago news -follow https://douchi.space/@mtfront.rss` (订阅长毛象)
 - `ago news -follow https://v2ex.com/feed/create.xml -p HasTitle` (订阅V站的“分享创造”节点)
 - `ago news -follow https://geeknote.net/Rei/feed.atom -p HasSummary` (订阅 geeknote)
-- `ago news -follow https://sspai.com/feed -p HasTitle` (订阅少数派)
-
+- `ago news -follow https://sspai.com/feed --parser HasTitle` (订阅少数派)
 - `ago news -l/--list` (查看已订阅的 RSS 列表)
 - `ago search -feeds` (完全等同 `ago news -l`)
 - `ago search -feeds keyword` (查找源标题里包含 keyword 的源)
+
+### 关于 parser
+
+默认采用 '--parser Base' 解析 RSS 内容，舍弃每篇博文的 title (因为有时 title 与正文重复)。
+
+建议先看看 RSS 源文件，看 title 有没有必要显示，如果需要保留 title, 可使用以下命令订阅：
+
+- `ago news -follow [url] -p/--parser HasTitle`
+
+在订阅后，也可更改解析器：
+
+- `ago news -u/--update [id] -p/--parser HasTitle`
+
+有的 RSS 源文件在提供 `<content>` 的同时也提供 `<summary>`, 对于这种情况，建议采用 '--parser HasSuammry'。
+
+### Proxy (代理)
+
+- `ago -i/--info` 查看当前 proxy 设定。
+- `ago --set-proxy [url]` 设置代理地址（有些 rss feed 需要翻墙才能订阅）
+- `ago --set-proxy true` 启用代理。
+- `ago --set-proxy false` 不使用代理。
+
+例如: `ago --set-proxy http://127.0.0.1:1081` (注意网址要以 http 开头)
 
 ### 改名
 
@@ -140,10 +163,11 @@ https://sspai.com/feed
 
 ### 更新
 
-默认每个源每 24 小时只能更新一次，可使用 '-force' 参数强制更新，但为了尊重源站节约资源及减少焦虑，建议不要频繁更新。
+默认每个源每 24 小时只能更新一次，可使用 '-force' 参数强制更新，但为了尊重源站节约资源及减少焦虑，建议不要频繁更新。（每次只能强制更新一个源，不可强制批量更新）
 
-- `ago news -u all` (批量更新全部源)
+- `ago news -u/--update all` (批量更新全部源)
 - `ago news -u sspai` (更新 feed id 为 sspai 的源)
+- `ago news -force -u id` (强制更新指定 id 的源)
 
 ### 阅读消息
 
@@ -152,6 +176,8 @@ https://sspai.com/feed
 - `ago news -next` (阅读下一条消息)
 - `ago news -feed id` (阅读指定 id 的源的消息，默认上限 9 条)
 - `ago news -feed id -limit 3` (阅读指定 id 的源的消息，最多显示 3 条)
+
+- `ago news --toggle-link` (显示/隐藏消息本身的链接)
 - `ago news -like id` (收藏指定 id 的消息)
 - `ago like id` (完全等同于 `ago news -like id`)
 - `ago copy [id] -link` (复制指定 id 的消息的链接)
@@ -169,11 +195,19 @@ https://sspai.com/feed
 - `ago publish --set-website` ([选填] 设置任意网址, 通常是你的个人网站或博客的网址)
 
 - `ago publish` (默认输出静态文件到当前目录的 'public' 文件夹，默认每页 50 条消息)
-- `ago publish -out /path/to/dir -n 25` (输出静态文件指定文件夹, 每页显示 25 条消息)
+- `ago publish -out /path/to/dir -n 25` (输出静态文件到指定文件夹, 每页显示 25 条消息)
 
 生成文件后，双击其中的 'index.html' 即可预览效果（我用了很简单的样式，懂前端的朋友可自行修改样式）。
 
-由于 ipelago 只处理微博客（每篇博文一两句话），不处理正常博客（长文章），因此 HTML 模板可以非常简单，自带的模板一个只有 62 行。可见，这个模板是非常容易看懂的，如果有不满意的地方，也就非常容易修改。
+### 自定义模板
+
+由于 ipelago 只处理微博客（每篇博文一两句话），不处理正常博客（长文章），因此 HTML 模板可以非常简单，自带的模板一共只有 62 行。可见，这个模板是非常容易看懂的，如果有不满意的地方，也就非常容易修改。
+
+执行 'ago publish' 命令，可以看到默认模板 (Templates) 文件夹的位置，把这个文件夹复制粘贴到另一个地方，就可以自由修改了。修改后，使用参数 '-tmpl' (或 '--templates') 指定 templates 文件夹的位置：
+
+- `ago publish -tmpl ..my_tmpl` ('-tmpl' 后面的文件夹可以使用相对路径、也可以使用绝对路径)
+
+注意，模板文件夹内必须包含 'index.html' 和 'atom.xml' 这两个模板文件，内容采用 Jinja2 语法。
 
 
 ## 源码
