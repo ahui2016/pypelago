@@ -379,7 +379,7 @@ Move_entry_to_fav: Final[
 Update_entry_bucket: Final[
     str
 ] = """
-    UPDATE entry SET bucket=:bucket WHERE id=:id;
+    UPDATE entry SET feed_id=:feed_id, bucket=:bucket WHERE id=:id;
     """
 
 Count_tag_by_entry_id: Final[

@@ -429,9 +429,14 @@ def toggle_entry_bucket(entry: FeedEntry, conn: Conn) -> Result[FeedEntry, str]:
         return Err("The bucket is not Public or Private.\n只能在 Public 与 Private 之间切换。")
 
     toggled = Bucket.Public if bucket is Bucket.Private else Bucket.Private
+    feed_id = PublicBucketID if toggled is Bucket.Public else PrivateBucketID
     entry.bucket = toggled.name
+    entry.feed_id = feed_id
+
     connExec(
-        conn, stmt.Update_entry_bucket, {"bucket": entry.bucket, "id": entry.entry_id}
+        conn,
+        stmt.Update_entry_bucket,
+        {"feed_id": feed_id, "bucket": entry.bucket, "id": entry.entry_id},
     ).unwrap()
     return Ok(entry)
 

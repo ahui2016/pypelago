@@ -60,8 +60,8 @@ ipelago 也可一次列举多条消息，但更提倡使用逐条浏览功能，
 ## 写博文
 
 - `ago post Hello World!` (写一条公开消息, 可通过 HTML 及 RSS 对外发布)
-- `ago post` (发送剪贴板的内容)
 - `ago post -pri/--private My password is abcd` (写一条隐私消息, 仅本地可见)
+- `ago post` (发送剪贴板的内容)
 - `ago post -g/-gui` (弹出一个简陋的 GUI 窗口方便输入)
 - `ago post -f/--file ./abc.txt` (发送文件 abc.txt 的内容)
 
@@ -83,13 +83,15 @@ ipelago 也可一次列举多条消息，但更提倡使用逐条浏览功能，
 - `ago copy id` (复制指定 id 的博文内容)
 
 以上命令包括（且只包括）公开消息与隐私消息。  
-以下命令可区分公开/隐私/收藏 (-pub/-pri/-fav)。
+以下命令可区分公开/隐私/收藏
+(其中 '-today' 与 '-yesterday' 不可与 '-fav' 搭配使用)
+('-date' 与 'count' 可与 '-fav' 搭配使用)。
 
 - `ago tl -today` (阅读今天的消息，包括公开与隐私，不包括收藏)
 - `ago tl -yesterday` (阅读昨天的消息，包括公开与隐私，不包括收藏)
 - `ago tl -today -pub/--public` (阅读今天的消息, 限定公开消息)
 - `ago tl -today -pri/--private` (阅读今天的消息, 限定隐私消息)
-- `ago tl -today -fav/--favorite` (阅读今天的消息, 限定收藏消息)
+- `ago tl -fav/--favorite` (阅读最近几条收藏消息)
 - `ago tl -date 2022-03-15` (阅读 2022年3月15日 的消息, 默认上限 9 条)
 - `ago tl -date 2022-03` (阅读 2022年3月 的消息, 默认上限 9 条)
 - `ago tl -date 2022 -pri -limit 20` (阅读 2022年 的隐私消息, 最多只显示上限 20 条)
@@ -123,7 +125,7 @@ ipelago 也可一次列举多条消息，但更提倡使用逐条浏览功能，
 ### Proxy (代理)
 
 - `ago -i/--info` 查看当前 proxy 设定。
-- `ago --set-proxy [url]` 设置代理地址（有些 rss feed 需要翻墙才能订阅）
+- `ago --set-proxy [url]` 设置代理网址（有些 rss feed 需要翻墙才能订阅）
 - `ago --set-proxy true` 启用代理。
 - `ago --set-proxy false` 不使用代理。
 
@@ -174,13 +176,20 @@ https://sspai.com/feed
 - `ago news` (阅读下一条消息, 完全等同 `ago news --next`)
 - `ago news -first` (阅读最新一条消息)
 - `ago news -next` (阅读下一条消息)
+- `ago news -zen` (阅读下一条消息, 专注模式)
+- `ago news -go/--goto 2022-03` (跳到 2022年3月1日 或最接近这天的消息)
 - `ago news -feed id` (阅读指定 id 的源的消息，默认上限 9 条)
 - `ago news -feed id -limit 3` (阅读指定 id 的源的消息，最多显示 3 条)
 
-- `ago news --toggle-link` (显示/隐藏消息本身的链接)
 - `ago news -like id` (收藏指定 id 的消息)
 - `ago like id` (完全等同于 `ago news -like id`)
-- `ago copy [id] -link` (复制指定 id 的消息的链接)
+- `ago news --toggle-link` (显示/隐藏消息本身的链接)
+- `ago copy id -link` (复制指定 id 的消息的链接)
+
+### 删除（源/消息）
+
+- `ago news -delete id` (删除一个源及与其相关的消息，已收藏的消息不会被删除，其中 id 是指用 'ago news -l' 看到的 id)
+- `ago delete id` (删除一条消息，其中 id 是指 消息的 id)
 
 
 ## 发布微博客
@@ -191,11 +200,17 @@ https://sspai.com/feed
 
 - `ago publish -info` (显示微博客信息)
 - `ago publish -g` (打开 GUI 窗口填写微博客信息)
+- `ago publish --set-title` ([必填] 设置 RSS 的标题，即你的微博客名称)
+- `ago publish --set-author` ([必填] 设置作者名)
 - `ago publish --set-link` ([必填] 设置 RSS 的链接)
 - `ago publish --set-website` ([选填] 设置任意网址, 通常是你的个人网站或博客的网址)
 
 - `ago publish` (默认输出静态文件到当前目录的 'public' 文件夹，默认每页 50 条消息)
 - `ago publish -out /path/to/dir -n 25` (输出静态文件到指定文件夹, 每页显示 25 条消息)
+
+title, author, link 这三项信息都必须有内容，才能执行 `ago publish` 命令生成网站文件。但可以先随便填，生成后看看效果，以后可以随时修改这些信息。
+
+其中 link 是指别人通过 RSS 订阅这个微博客的网址，请务必后续发布到到网上后找到正确的网址，再回头修改。
 
 生成文件后，双击其中的 'index.html' 即可预览效果（我用了很简单的样式，懂前端的朋友可自行修改样式）。
 
@@ -210,6 +225,33 @@ https://sspai.com/feed
 注意，模板文件夹内必须包含 'index.html' 和 'atom.xml' 这两个模板文件，内容采用 Jinja2 语法。
 
 
-## 源码
+## Tags and Search (标签与搜索)
 
-常用命令如上所示，更详细的说明以及源码请看 [https://github.com/ahui2016/pypelago](https://github.com/ahui2016/pypelago)
+标签必须以“空格井号”开头，以空格结尾，并且不超过 TagSizeLimit  
+(注意：并不是加了井号就一定能形成标签，必须以 " #" 开头，以空格结尾，并且不超过长度上限才能形成标签。)
+
+例：以下命令发表了一条消息，同时关联了标签 'cde', 由于 '#' 是特殊字符，因此消息内容需要用半角双引号括住。推荐使用 'ago post -g' 打开 GUI 窗口方便输入（在 GUI 窗口中不需要用双引号括住内容，可随意输入任何特殊字符）。
+
+```sh
+ago post "abc #cde efg"
+```
+
+`ago search keyword` 自动优先采用 '-tag' 方式搜索，如果没有结果再自动改成 '-contain' 方式搜索。
+`ago search -tag/--by-tag [tag]` 通过标签搜索消息，效率较高。
+`ago search -contain keyword` 搜索内容包含 keyword 的消息，效率较低。
+
+以上命令默认包括 公开/隐私/收藏/订阅 四种消息，但都可以加 '-bucket' 参数限定只搜索其中一的消息，例如：
+
+- `ago search abc -bucket fav` 在收藏消息中查找包含 'abc' 的消息。
+- `ago search cde -bucket public` 在我的公开消息在查找包含 'cde' 的消息。
+
+以上命令默认最多列出 9 个结果，可加参数 '-limit' 更改上限，例如：
+
+- `ago search keyword -limit 30`
+
+以上命令是搜索消息内容的，以下命令可搜索源与标签本身。
+
+`ago search --all-tags` 列出全部标签
+`ago search --all-tags keyword` 在全部标签中查找包含 keyword 的标签名
+`ago search --all-feeds` 列出全部已订阅的源，等同 `ago news --list`
+`ago search --all-feeds keyword` 查找源名称中包含 keyword 的源

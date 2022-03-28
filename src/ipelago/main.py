@@ -177,14 +177,14 @@ def init_command(name: str):
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
+    "gui", "-g", "--gui", is_flag=True, help="Open a GUI window for text input."
+)
+@click.option(
     "filename",
     "-f",
     "--file",
     type=click.Path(exists=True),
     help="Send the content of the file.",
-)
-@click.option(
-    "gui", "-g", "--gui", is_flag=True, help="Open a GUI window for text input."
 )
 @click.argument("msg", nargs=-1)
 @click.option(
@@ -358,14 +358,14 @@ def tl(
     help="Open a GUI window to view/edit informations.",
 )
 @click.option("info", "-info", is_flag=True, help="Show informations about my feed.")
+@click.option("title", "--set-title", help="Set the title of my feed.")
+@click.option("author", "--set-author", help="Set the author of my feed.")
 @click.option(
     "link", "--set-link", help="Set the RSS link of my feed. (RSS feed 本身的链接)"
 )
 @click.option(
     "website", "--set-website", help="Set a URL of my home page. (个人网站或博客的链接)"
 )
-@click.option("title", "--set-title", help="Set the title of my feed.")
-@click.option("author", "--set-author", help="Set the author of my feed.")
 @click.option(
     "output",
     "-out",
@@ -453,14 +453,6 @@ def toggle_link(ctx: click.Context, _, value):
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
-@click.option(
-    "--toggle-link",
-    is_flag=True,
-    help="Toggle always show link.",
-    expose_value=False,
-    callback=toggle_link,
-)
-@click.option("show_list", "-l", "--list", is_flag=True, help="List all feeds.")
 @click.option("follow", "-follow", help="Subscribe a feed.")
 @click.option(
     "parser",
@@ -469,20 +461,28 @@ def toggle_link(ctx: click.Context, _, value):
     type=click.Choice(["Base", "HasTitle", "HasSummary"]),
     help="Select a parser.",
 )
+@click.option("show_list", "-l", "--list", is_flag=True, help="List all feeds.")
+@click.option("feed_id", "-feed", help="Show messages of a feed.")
+@click.option("new_name", "--set-name", help="Change the name of a feed.")
+@click.option("new_id", "--set-id", help="Change the id of a feed.")
+@click.option("update", "-u", "--update", help="Update a feed.")
 @click.option("first", "-first", is_flag=True, help="Read the latest message.")
 @click.option("next", "-next", is_flag=True, help="Read the next message.")
 @click.option(
     "goto_date", "-go", "--goto", help="Move the cursor to a date(YYYY-MM-DD)"
 )
 @click.option("limit", "-limit", type=int, help="Limit the number of messages.")
-@click.option("update", "-u", "--update", help="Update a feed.")
-@click.option("feed_id", "-feed", help="Show messages of a feed.")
-@click.option("like", "-like", help="Move an entry to the Favorite bucket.")
-@click.option("new_id", "--set-id", help="Change the id of a feed.")
-@click.option("new_name", "--set-name", help="Change the name of a feed.")
-@click.option("delete", "-delete", help="Delete a feed (specify by id).")
 @click.option("force", "-force", is_flag=True, help="Force to update or delete.")
+@click.option("like", "-like", help="Move an entry to the Favorite bucket.")
+@click.option("delete", "-delete", help="Delete a feed (specify by id).")
 @click.option("zen", "-zen", is_flag=True, help="Zen mode. (专注模式)")
+@click.option(
+    "--toggle-link",
+    is_flag=True,
+    help="Toggle always show link.",
+    expose_value=False,
+    callback=toggle_link,
+)
 @click.pass_context
 def news(
     ctx: click.Context,
@@ -572,7 +572,12 @@ def news(
 @click.argument("entry_id", nargs=1)
 @click.pass_context
 def like(ctx: click.Context, entry_id: str):
-    """Same as 'ago news -like [id]'"""
+    """Same as 'ago news -like [id]'
+
+    收藏指定 id 的消息 (从 news 移动到 fav),
+
+    可使用命令 'ago tl -fav' 查看被收藏的消息。
+    """
     check_init(ctx)
     with db.connect_db() as conn:
         util.move_to_fav(entry_id, conn)
