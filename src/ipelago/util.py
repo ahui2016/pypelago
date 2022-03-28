@@ -276,12 +276,17 @@ def print_subs_list(conn: Conn, feed_id: str = "") -> None:
         return
 
     print()
-    if feed_id:
-        feed = sl[0]
-        print(f"[{feed.feed_id}] {feed.title}\n{feed.feed_link}\n")
-        return
-
     for feed in sl:
+        print(f"[{feed.feed_id}] {feed.title}\n{feed.feed_link}\n")
+
+
+def print_feeds_by_title(conn: Conn, title: str) -> None:
+    feeds = db.get_feeds_by_title(conn, title)
+    if not feeds:
+        print("Not Found: {title}")
+        return
+    print()
+    for feed in feeds:
         print(f"[{feed.feed_id}] {feed.title}\n{feed.feed_link}\n")
 
 

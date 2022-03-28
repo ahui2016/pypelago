@@ -255,6 +255,13 @@ def get_subs_list(conn: Conn, feed_id: str = "") -> list[Feed]:
     return subs_list
 
 
+def get_feeds_by_title(conn: Conn, title: str) -> list[Feed]:
+    feeds: list[Feed] = []
+    for row in conn.execute(stmt.Get_feeds_by_title, ("%" + title + "%",)).fetchall():
+        feeds.append(model.new_feed_from(row))
+    return feeds
+
+
 def check_before_update_all(feed: Feed) -> Result[str, str]:
     updated = arrow.get(feed.updated, RFC3339)
     if updated.int_timestamp + UpdateRateLimit < arrow.now().int_timestamp:
@@ -409,11 +416,9 @@ def move_to_fav(entry_id: str, conn: Conn) -> str:
     return newid
 
 
-def get_recent_entries(bucket:str, limit: int, conn: Conn) -> list[FeedEntry]:
+def get_recent_entries(bucket: str, limit: int, conn: Conn) -> list[FeedEntry]:
     entries = []
-    for row in conn.execute(
-        stmt.Get_entries_limit, {"bucket": bucket, "limit": limit}
-    ):
+    for row in conn.execute(stmt.Get_entries_limit, {"bucket": bucket, "limit": limit}):
         entries.append(model.new_entry_from(row))
     return entries
 
@@ -513,7 +518,7 @@ def get_all_tags(conn: Conn) -> list[str]:
     return tags
 
 
-def get_one_tag(name: str, conn: Conn) -> list[str]:
+def get_tags_by_name(name: str, conn: Conn) -> list[str]:
     tags = []
     for row in conn.execute(stmt.Get_one_tag, ("%" + name + "%",)):
         tags.append("#" + row[0])

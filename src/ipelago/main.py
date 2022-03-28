@@ -84,7 +84,7 @@ def set_proxy(ctx, _, value):
             cfg["use_proxy"] = True
         elif value == "false":
             cfg["use_proxy"] = False
-        elif not value.startswith('http'):
+        elif not value.startswith("http"):
             click.echo("Error: The proxy URL should be start with 'http'")
             ctx.exit()
         else:
@@ -374,6 +374,13 @@ def tl(
     help="Output static files to which folder.",
 )
 @click.option(
+    "tmpl_folder",
+    "-tmpl",
+    "--templates",
+    default="",
+    help="Specify a folder that contains templates files.",
+)
+@click.option(
     "page_n", "-n", "--page-n", type=int, help="How many items are shown per page."
 )
 @click.option("force", "-force", is_flag=True, help="Confirm overwrite.")
@@ -387,6 +394,7 @@ def publish(
     author: str,
     info: bool,
     output: str,
+    tmpl_folder: str,
     page_n: int,
     force: bool,
 ):
@@ -429,7 +437,7 @@ def publish(
             publish_show_info(conn)
         else:
             check(ctx, check_before_publish(conn), False)
-            publish_html_rss(conn, page_n, output, force)
+            publish_html_rss(conn, page_n, output, tmpl_folder, force)
 
 
 def toggle_link(ctx: click.Context, _, value):
@@ -525,7 +533,7 @@ def news(
         elif new_id:
             check_id(ctx, feed_id)
             """这是既有 new_id 也有 feed_id 的情形"""
-            if new_id == 'all':
+            if new_id == "all":
                 click.echo("ID 不允许设置为 'all'")
             else:
                 check(ctx, db.update_feed_id(new_id, feed_id, conn), False)
@@ -540,7 +548,9 @@ def news(
             total = conn.execute(stmt.Count_by_feed_id, (feed_id,)).fetchone()[0]
             entries = db.get_news_by_feed(feed_id, limit, conn)
             if total > 0:
-                print(f"\nTotal {total} items in [ID:{feed_id}], showing {len(entries)} items.\n")
+                print(
+                    f"\nTotal {total} items in [ID:{feed_id}], showing {len(entries)} items.\n"
+                )
             util.print_entries(entries, cfg["news_show_link"], util.print_news_short_id)
         elif delete:
             util.print_subs_list(conn, delete)
@@ -603,6 +613,9 @@ def copy(ctx: click.Context, entry_id: str, link: bool):
     help="Search in the specific bucket only.",
 )
 @click.option("all_tags", "--all-tags", is_flag=True, help="List out all tags.")
+@click.option(
+    "all_feeds", "-feeds", "--all-feeds", is_flag=True, help="List out all feeds."
+)
 @click.pass_context
 def search(
     ctx: click.Context,
@@ -612,6 +625,7 @@ def search(
     is_tag: bool,
     is_contain: bool,
     all_tags: bool,
+    all_feeds: bool,
 ):
     """Search entries by a tag or a keyword.
 
@@ -625,7 +639,7 @@ def search(
     """
     check_init(ctx)
 
-    if not keyword and not all_tags:
+    if not keyword and not all_tags and not all_feeds:
         print("Error: Missing argument 'KEYWORD'.")
         ctx.exit()
 
@@ -637,10 +651,15 @@ def search(
 
         if all_tags:
             if keyword:
-                tags = db.get_one_tag(keyword, conn)
+                tags = db.get_tags_by_name(keyword, conn)
             else:
                 tags = db.get_all_tags(conn)
             print(f'Found {len(tags)} tags: {" ".join(tags)}\n')
+        elif all_feeds:
+            if keyword:
+                util.print_feeds_by_title(conn, keyword)
+            else:
+                util.print_subs_list(conn)
         elif is_tag:
             util.search_by_tag(keyword, limit, bucket, conn)
         elif is_contain:

@@ -4,17 +4,20 @@ import shutil
 import sqlite3
 from typing import Final, TypedDict
 import arrow
-from jinja2 import (
-    Environment,
-    FileSystemLoader,
-    PackageLoader,
-    select_autoescape,
-)
+import jinja2
 from result import Result, Err
 from ipelago import stmt
 
 from ipelago.db import get_feed_by_id, get_public_limit, get_recent_entries
-from ipelago.model import OK, RFC3339, Bucket, Feed, FeedEntry, FeedSizeLimit, PublicBucketID
+from ipelago.model import (
+    OK,
+    RFC3339,
+    Bucket,
+    Feed,
+    FeedEntry,
+    FeedSizeLimit,
+    PublicBucketID,
+)
 
 Conn = sqlite3.Connection
 
@@ -51,27 +54,37 @@ def new_links():
 
 
 try:
-    loader = PackageLoader("ipelago")
+    loader = jinja2.PackageLoader("ipelago")
 except ValueError:
-    loader = FileSystemLoader("src/ipelago/templates")
+    loader = jinja2.FileSystemLoader("src/ipelago/templates")
 
-jinja_env = Environment(loader=loader, autoescape=select_autoescape())
+default_env = jinja2.Environment(loader=loader, autoescape=jinja2.select_autoescape())
 
 
-def get_src_dir() -> Path:
-    tmpl = jinja_env.get_template(index_html)
+def get_fs_env(tmpl_folder: str) -> jinja2.Environment:
+    loader = jinja2.FileSystemLoader(tmpl_folder)
+    return jinja2.Environment(loader=loader, autoescape=jinja2.select_autoescape())
+
+
+def get_jinja_env(tmpl_folder: str) -> jinja2.Environment:
+    if not tmpl_folder:
+        return default_env
+    else:
+        return get_fs_env(tmpl_folder)
+
+
+def get_src_dir(tmpl_folder: str) -> Path:
+    tmpl = get_jinja_env(tmpl_folder).get_template(index_html)
     if not tmpl.filename:
         raise ValueError(f"NotFound: {index_html}")
     return Path(tmpl.filename).parent
 
 
-def copy_static_files(dst_dir: Path) -> None:
-    static_files = ["simple.css", "style.css"]
-    for name in static_files:
-        dst = dst_dir.joinpath(name)
-        if not dst.exists():
-            src = get_src_dir().joinpath(name)
-            shutil.copyfile(src, dst)
+def copy_static_files(tmpl_folder: str, dst_dir: Path) -> None:
+    static_files = get_src_dir(tmpl_folder).glob("*.css")
+    for src in static_files:
+        dst = dst_dir.joinpath(src.name)
+        shutil.copyfile(src, dst)
 
 
 def ensure_dst_dir(dst_dir: Path, force: bool) -> bool:
@@ -88,35 +101,49 @@ def ensure_dst_dir(dst_dir: Path, force: bool) -> bool:
     return True
 
 
-def publish_html_rss(conn: Conn, limit: int, output: str, force: bool) -> None:
+def print_tmpl_folder(tmpl_folder: str) -> None:
+    try:
+        src_dir = get_src_dir(tmpl_folder)
+    except jinja2.exceptions.TemplateNotFound:
+        src_dir = Path(tmpl_folder)
+    print(f"\n[Templates] {src_dir.resolve()}")
+
+
+def publish_html_rss(
+    conn: Conn, limit: int, output: str, tmpl_folder: str, force: bool
+) -> None:
+    print_tmpl_folder(tmpl_folder)
     dst_dir = Path(output) if output else Path(default_output_folder)
     dst_dir = dst_dir.resolve()
-    print(f"\nOutput to {dst_dir}")
+    print(f"[Output] {dst_dir}")
     ok = ensure_dst_dir(dst_dir, force)
     if not ok:
         return
+
     feed = get_feed_by_id(PublicBucketID, conn).unwrap()
     feed.updated = arrow.now().format(RFC3339)[:10]
-    publish_html(conn, feed, limit, dst_dir)
-    publish_rss(conn, feed, dst_dir)
+    publish_html(conn, feed, limit, tmpl_folder, dst_dir)
+    publish_rss(conn, feed, tmpl_folder, dst_dir)
 
 
-def publish_rss(conn: Conn, feed: Feed, dst_dir: Path) -> None:
+def publish_rss(conn: Conn, feed: Feed, tmpl_folder: str, dst_dir: Path) -> None:
     entries = get_recent_entries(Bucket.Public.name, atom_entries_limit, conn)
-    rss = render_atom_rss(atom_xml, feed, entries)
+    rss = render_atom_rss(tmpl_folder, atom_xml, feed, entries)
     output_file = dst_dir.joinpath(atom_xml)
     output_file.write_text(rss, encoding="utf-8")
 
 
-def publish_html(conn: Conn, feed: Feed, limit: int, dst_dir: Path) -> None:
+def publish_html(
+    conn: Conn, feed: Feed, limit: int, tmpl_folder: str, dst_dir: Path
+) -> None:
     total = conn.execute(stmt.Count_by_feed_id, (PublicBucketID,)).fetchone()[0]
     if total <= limit:
         entries = get_public_limit("", limit, conn)
-        render_index_page(dst_dir, feed, entries)
+        render_index_page(dst_dir, tmpl_folder, feed, entries)
     else:
-        render_all_pages(dst_dir, feed, total, limit, conn)
+        render_all_pages(dst_dir, tmpl_folder, feed, total, limit, conn)
 
-    copy_static_files(dst_dir)
+    copy_static_files(tmpl_folder, dst_dir)
     print("OK.\n")
 
 
@@ -140,7 +167,7 @@ def get_output_names(current_page: int, total: int, page_limit: int) -> dict:
 
 
 def render_all_pages(
-    dst_dir: Path, feed: Feed, total: int, limit: int, conn: Conn
+    dst_dir: Path, tmpl_folder: str, feed: Feed, total: int, limit: int, conn: Conn
 ) -> None:
     page = 0
     cursor: str = ""
@@ -161,27 +188,34 @@ def render_all_pages(
         )
         entries = get_public_limit(cursor, limit, conn)
         cursor = entries[-1].published
-        render_write_page(dst_dir, index_html, names["output"], feed, links, entries)
+        render_write_page(
+            dst_dir, tmpl_folder, index_html, names["output"], feed, links, entries
+        )
         if names["output"] == index_html:
             break
 
 
-def render_index_page(dst_dir: Path, feed: Feed, entries: list[FeedEntry]) -> None:
+def render_index_page(
+    dst_dir: Path, tmpl_folder: str, feed: Feed, entries: list[FeedEntry]
+) -> None:
     links = new_links()
     links["index_page"] = Link(name="", href=feed.website)
     links["footer"] = Link(name=feed.website, href=feed.website)
-    render_write_page(dst_dir, index_html, index_html, feed, links, entries)
+    render_write_page(
+        dst_dir, tmpl_folder, index_html, index_html, feed, links, entries
+    )
 
 
 def render_write_page(
     dst_dir: Path,
+    tmpl_folder: str,
     tmpl_name: str,
     output_name: str,
     feed: Feed,
     links: Links,
     entries: list[FeedEntry],
 ) -> None:
-    tmpl = jinja_env.get_template(tmpl_name)
+    tmpl = get_jinja_env(tmpl_folder).get_template(tmpl_name)
     if not tmpl.filename:
         raise ValueError(f"NotFound: {tmpl_name}")
 
@@ -195,12 +229,14 @@ def render_write_page(
     output_file = dst_dir.joinpath(output_name)
     output_file.write_text(html, encoding="utf-8")
 
+
 def render_atom_rss(
+    tmpl_folder: str,
     tmpl_name: str,
     feed: Feed,
     entries: list[FeedEntry],
 ) -> str:
-    tmpl = jinja_env.get_template(tmpl_name)
+    tmpl = get_jinja_env(tmpl_folder).get_template(tmpl_name)
     if not tmpl.filename:
         raise ValueError(f"NotFound: {tmpl_name}")
 
@@ -215,7 +251,7 @@ def render_atom_rss(
         if len(rss) <= FeedSizeLimit:
             return rss
         else:
-            entries = entries[:len(entries)//2]
+            entries = entries[: len(entries) // 2]
 
 
 def check_before_publish(conn: sqlite3.Connection) -> Result[str, str]:

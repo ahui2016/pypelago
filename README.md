@@ -103,6 +103,8 @@ ipelago 也可一次列举多条消息，但更提倡使用逐条浏览功能，
 - `ago news -follow https://sspai.com/feed -p HasTitle` (订阅少数派)
 
 - `ago news -l/--list` (查看已订阅的 RSS 列表)
+- `ago search -feeds` (完全等同 `ago news -l`)
+- `ago search -feeds keyword` (查找源标题里包含 keyword 的源)
 
 ### 改名
 
@@ -168,6 +170,11 @@ https://sspai.com/feed
 
 - `ago publish` (默认输出静态文件到当前目录的 'public' 文件夹，默认每页 50 条消息)
 - `ago publish -out /path/to/dir -n 25` (输出静态文件指定文件夹, 每页显示 25 条消息)
+
+生成文件后，双击其中的 'index.html' 即可预览效果（我用了很简单的样式，懂前端的朋友可自行修改样式）。
+
+由于 ipelago 只处理微博客（每篇博文一两句话），不处理正常博客（长文章），因此 HTML 模板可以非常简单，自带的模板一个只有 62 行。可见，这个模板是非常容易看懂的，如果有不满意的地方，也就非常容易修改。
+
 
 ## 源码
 

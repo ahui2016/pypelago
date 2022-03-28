@@ -240,6 +240,12 @@ Get_subs_list: Final[
     SELECT * FROM feed WHERE id<>'Public' and id<>'Private' and id<>'Fav'
     ORDER BY id;
     """
+Get_feeds_by_title: Final[
+    str
+] = """
+    SELECT * FROM feed WHERE id<>'Public' and id<>'Private' and id<>'Fav'
+    and title LIKE ? ORDER BY id;
+    """
 
 Insert_entry: Final[
     str
