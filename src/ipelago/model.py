@@ -195,7 +195,6 @@ def next_feed_id(timestamp: int) -> tuple[str, int]:
 
 def extract_tags(s: str) -> list[str]:
     """标签必须以“空格井号”开头，以空格结尾，并且不超过 TagSizeLimit"""
-    if s[0] == "#":
-        s = " " + s  # 因为标签必须以“空格井号”开头
+    s = " " + s + " " # 因为标签必须以“空格井号”开头, 以空格结尾
     tags = TagsPattern.findall(s)
     return [tag for tag in tags if byte_len(tag) <= TagSizeLimit]

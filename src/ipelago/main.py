@@ -232,6 +232,8 @@ def toggle(ctx: click.Context, entry_id: str):
     """Toggle Public/Private of an entry.
 
     切换一条消息的公开/隐私状态。
+
+    公开消息可通过 'ago publish' 命令对外发布，隐私消息只能本地浏览。
     """
     check_init(ctx)
     util.toggle_entry_bucket(entry_id)
@@ -327,6 +329,7 @@ def tl(
         if not limit:
             limit = cfg["cli_page_n"]
 
+        zen_mode(cfg, zen)
         if today:
             util.print_my_today(limit, buckets, conn)
         elif yesterday:
@@ -340,12 +343,10 @@ def tl(
         elif goto_date:
             util.my_cursor_goto(goto_date, conn)
         elif first:
-            zen_mode(cfg, zen)
             cfg["tl_cursor"] = ""
             db.update_cfg(cfg, conn)
             util.print_my_next_msg(conn)
         else:
-            zen_mode(cfg, zen)
             util.print_my_next_msg(conn)
 
 
@@ -518,6 +519,7 @@ def news(
         if not limit:
             limit = cfg["cli_page_n"]
 
+        zen_mode(cfg, zen)
         if show_list:
             util.print_subs_list(conn)
         elif follow:
@@ -559,12 +561,10 @@ def news(
         elif goto_date:
             util.news_cursor_goto(goto_date, conn)
         elif first:
-            zen_mode(cfg, zen)
             cfg["news_cursor"] = ""
             db.update_cfg(cfg, conn)
             util.print_news_next_msg(conn)
         else:
-            zen_mode(cfg, zen)
             util.print_news_next_msg(conn)
 
 

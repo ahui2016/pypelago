@@ -236,16 +236,16 @@ title, author, link 这三项信息都必须有内容，才能执行 `ago publis
 ago post "abc #cde efg"
 ```
 
-`ago search keyword` 自动优先采用 '-tag' 方式搜索，如果没有结果再自动改成 '-contain' 方式搜索。
-`ago search -tag/--by-tag [tag]` 通过标签搜索消息，效率较高。
-`ago search -contain keyword` 搜索内容包含 keyword 的消息，效率较低。
+- `ago search keyword` (自动优先采用 '-tag' 方式搜索，如果没有结果再自动改成 '-contain' 方式搜索)
+- `ago search -tag/--by-tag [tag]` (通过标签搜索消息，效率较高)
+- `ago search -contain keyword` (搜索内容包含 keyword 的消息，效率较低)
 
-以上命令默认包括 公开/隐私/收藏/订阅 四种消息，但都可以加 '-bucket' 参数限定只搜索其中一的消息，例如：
+以上命令默认包括 公开(public)/隐私(private)/收藏(fav)/订阅(news) 四种消息，但都可以加 '-bucket' 参数限定只搜索其中一的消息，例如：
 
-- `ago search abc -bucket fav` 在收藏消息中查找包含 'abc' 的消息。
-- `ago search cde -bucket public` 在我的公开消息在查找包含 'cde' 的消息。
+- `ago search abc -bucket fav` (在收藏消息中查找包含 'abc' 的消息)
+- `ago search cde -bucket public` (在我的公开消息在查找包含 'cde' 的消息)
 
-以上命令默认最多列出 9 个结果，可加参数 '-limit' 更改上限，例如：
+以上命令默认最多列出 9 条结果，可加参数 '-limit' 更改上限，例如：
 
 - `ago search keyword -limit 30`
 
@@ -255,3 +255,43 @@ ago post "abc #cde efg"
 `ago search --all-tags keyword` 在全部标签中查找包含 keyword 的标签名
 `ago search --all-feeds` 列出全部已订阅的源，等同 `ago news --list`
 `ago search --all-feeds keyword` 查找源名称中包含 keyword 的源
+
+例如 `ago search --all-tags java` 可以找到标签 'Java' 和 'JavaScript', 而不是查找与这些标签关联的消息。
+
+
+## 特殊技巧
+
+### 特殊的订阅方法
+
+我遇到了一些 rss feed 受到 Cloudflare 的保护而无法通过 python requests 访问，但可以用浏览器直接访问，比如这个 https://mstdn.jp/@nekodayo.rss
+
+对于这种情况，可以用浏览器访问，按 Ctrl+S 保存 rss 到本地，建议保存到一个固定的文件夹，比如我保存在 D:\rss_feeds 里。
+
+然后就可以这样订阅 `ago news -follow D:\rss_feeds\@nekodayo.rss`
+
+但问题也很明显，后续需要手动下载 rss 覆盖同名文件才能更新内容，先这样应付吧，以后再想别的办法。
+
+### Zen Mode (专注模式)
+
+我自己很喜欢这个模式，简单来说只是自动清屏而已，效果是减少浮躁，使人宁静。 'ago tl' 系列命令与 'ago news' 系列命令可使用专注模式，例如：
+
+- `ago tl -zen`
+- `ago news -zen`
+
+也可以使用命令 'ago -zen/--toggle-zen' 切换默认开启/默认关闭 zen mode。
+
+### Info (软件信息)
+
+使用命令 'ago -i/--info' 可查看程序位置、版本、数据库文件位置、zen mode 是否默认打开、代理 等信息，例如：
+
+```sh
+$ ago -i/--info
+
+[ago] D:\ComputerScience\Python\myprojects\pypelago\src\ipelago\main.py
+[version] 0.0.1
+[database] C:\Users\ahui\AppData\Local\github-ahui2016\pypelago\pypelago.db
+[Zen Mode Always ON] False
+[http_proxy] http://127.0.0.1:1081
+[use_proxy] False
+[repo] https://github.com/ahui2016/pypelago
+```

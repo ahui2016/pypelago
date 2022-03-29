@@ -332,6 +332,7 @@ def copy_msg_link(prefix: str, link: bool, conn: Conn) -> None:
                 copytext(entry.link)
             else:
                 copytext(entry.content)
+            print("OK, copied.")
 
 
 def toggle_entry_bucket(prefix: str) -> None:
