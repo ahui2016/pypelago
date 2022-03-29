@@ -151,14 +151,18 @@ def print_my_entries(prefix: str, limit: int, buckets: list[str], conn: Conn) ->
     else:
         entries = db.get_by_date(prefix, limit, buckets[0], conn)
 
+    n = count_my_entries(prefix, buckets, conn, verbose=False)
+    print(f"\nTotal {n} items in [{prefix}], showing {len(entries)} items.\n")
     print_entries(entries, False, print_my_msg)
 
 
-def count_my_entries(prefix: str, buckets: list[str], conn: Conn) -> None:
+def count_my_entries(prefix: str, buckets: list[str], conn: Conn, verbose:bool=True) -> int:
     if not buckets:
         buckets = [Bucket.Public.name, Bucket.Private.name]
     n = db.conut_by_date_buckets(prefix, buckets, conn)
-    print(f"[{prefix}]: {n} message(s)")
+    if verbose:
+        print(f"[{prefix}]: {n} message(s)")
+    return n
 
 
 def print_my_today(limit: int, buckets: list[str], conn: Conn) -> None:

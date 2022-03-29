@@ -27,8 +27,8 @@ TagSizeLimit: Final[int] = 30  # bytes
 
 OK: Final[Ok] = Ok("OK")
 
-TagsPattern: Final[Pattern[str]] = re.compile(r"\s#([\S]+)\s")
-"""标签以“空格井号”开头，以空格结尾"""
+TagsPattern: Final[Pattern[str]] = re.compile(r"#([\S]+)\s")
+"""标签以“井号”开头，以空格结尾"""
 
 
 class Bucket(Enum):
@@ -194,7 +194,7 @@ def next_feed_id(timestamp: int) -> tuple[str, int]:
 
 
 def extract_tags(s: str) -> list[str]:
-    """标签必须以“空格井号”开头，以空格结尾，并且不超过 TagSizeLimit"""
-    s = " " + s + " " # 因为标签必须以“空格井号”开头, 以空格结尾
+    """标签必须以“井号”开头，以空格结尾，并且不超过 TagSizeLimit"""
+    s = s + " " # 因为标签必须以空格结尾
     tags = TagsPattern.findall(s)
     return [tag for tag in tags if byte_len(tag) <= TagSizeLimit]
