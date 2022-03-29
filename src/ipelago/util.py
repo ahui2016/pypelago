@@ -177,7 +177,7 @@ def print_my_yesterday(limit: int, buckets: list[str], conn: Conn) -> None:
 
 def insert_tags(tags: list[str], entry_id: str, conn: Conn) -> None:
     db.insert_tags(tags, entry_id, conn).unwrap()
-    print(f'[Tags] {" ".join(tags)}')
+    print(f'[Tags] {" ".join(tags)}\n')
 
 
 def post_msg(msg: str, bucket: Bucket) -> None:
