@@ -41,6 +41,15 @@ ipelago 也可一次列举多条消息，但更提倡使用逐条浏览功能，
 
 ## 安装与初始化
 
+ipelago 使用了 Python 3.10 的新特性，比如 type union operator, pattern matching 等，因此，如果你的系统中未安装 Python 3.10, 推荐使用 [pyenv](https://github.com/pyenv/pyenv) 或 [miniconda](https://docs.conda.io/en/latest/miniconda.html) 来安装最新版本的 Python。
+
+例如，安装 miniconda 后，可以这样创建 3.10 环境：
+
+```sh
+$ conda create --name py310 python=3.10
+$ conda activate py310
+```
+
 安装非常简单，只要 `pip install ipelago` 即可。
 
 安装后，第一次正式使用前，必须执行 'ago init name' 进行初始化，其中 name 是你的微博客名称，对外发布时别人可以看到。
