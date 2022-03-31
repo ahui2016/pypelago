@@ -110,6 +110,7 @@ $ conda activate py310
 ## 订阅 RSS
 
 - `ago news -follow https://douchi.space/@mtfront.rss` (订阅长毛象)
+- `ago news -follow https://m.cmx.im/@guobetty.rss` (一般来说，长毛象的 rss 地址就是在用户地址后面直接加 '.rss' 即可) (注意，这个源要翻墙，可参考下面 Proxy 章节设置代理)
 - `ago news -follow https://v2ex.com/feed/create.xml -p HasTitle` (订阅V站的“分享创造”节点)
 - `ago news -follow https://geeknote.net/Rei/feed.atom -p HasSummary` (订阅 geeknote)
 - `ago news -follow https://sspai.com/feed --parser HasTitle` (订阅少数派)
@@ -314,4 +315,4 @@ $ ago -i/--info
 
 我用这个程序生成的微博客，采用自带的极简模板（我实在不擅长前端，但懂前端的人可以看上面 "自定义模板" 的章节，很容易修改）。
 
-[https://blog.ai42.xyz/i/](blog.ai42.xyz/i/)
+[blog.ai42.xyz/i/](https://blog.ai42.xyz/i/)
