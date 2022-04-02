@@ -6,9 +6,9 @@ import requests
 import feedparser
 from feedparser import FeedParserDict
 from result import Err, Ok, Result
-import ipelago.db as db
-import ipelago.stmt as stmt
-from ipelago.model import (
+from . import db
+from . import stmt
+from .model import (
     Bucket,
     Feed,
     FeedEntry,

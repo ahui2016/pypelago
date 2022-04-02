@@ -5,8 +5,8 @@ from typing import Any, Final, Iterable
 import arrow
 from result import Ok, Err, Result
 from appdirs import AppDirs
-from ipelago import model
-from ipelago.model import (
+from . import model
+from .model import (
     OK,
     RFC3339,
     AppConfig,
@@ -17,8 +17,8 @@ from ipelago.model import (
     PrivateBucketID,
     PublicBucketID,
 )
-from ipelago.shortid import first_id, parse_id
-import ipelago.stmt as stmt
+from .shortid import first_id, parse_id
+from . import stmt
 
 Hour: Final[int] = 60 * 60
 Day: Final[int] = 24 * Hour
@@ -70,8 +70,7 @@ def update_cfg(cfg: AppConfig, conn: Conn) -> None:
 
 
 def init_cfg(conn: Conn) -> None:
-    cfg = get_cfg(conn)
-    if cfg.err():
+    if get_cfg(conn).is_err():
         default_cfg = model.default_config()
         conn.execute(stmt.Insert_metadata, (app_config_name, json.dumps(default_cfg)))
 

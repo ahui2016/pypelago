@@ -1,9 +1,7 @@
 from typing import Final
 
 
-Create_tables: Final[
-    str
-] = """
+Create_tables: Final = """
 CREATE TABLE IF NOT EXISTS metadata
 (
     name    text   NOT NULL UNIQUE,
@@ -50,136 +48,96 @@ CREATE INDEX IF NOT EXISTS idx_tag_name ON tag(name);
 CREATE INDEX IF NOT EXISTS idx_tag_entry_id ON tag(entry_id);
 """
 
-Insert_metadata: Final[str] = "INSERT INTO metadata (name, value) VALUES (?, ?);"
-Get_metadata: Final[str] = "SELECT value FROM metadata WHERE name=?;"
-Update_metadata: Final[str] = "UPDATE metadata SET value=:value WHERE name=:name;"
+Insert_metadata: Final = "INSERT INTO metadata (name, value) VALUES (?, ?);"
+Get_metadata: Final = "SELECT value FROM metadata WHERE name=?;"
+Update_metadata: Final = "UPDATE metadata SET value=:value WHERE name=:name;"
 
-Insert_tag: Final[
-    str
-] = """
+Insert_tag: Final = """
     INSERT INTO tag (name, entry_id) VALUES (:name, :entry_id);
     """
 
-Get_by_tag: Final[
-    str
-] = """
+Get_by_tag: Final = """
     SELECT id, content, link, published, feed_id, feed_name, bucket
     FROM tag, entry
     WHERE tag.name=:name and tag.entry_id=entry.id
     ORDER BY entry.published DESC LIMIT :limit;
     """
-Count_by_tag: Final[
-    str
-] = """
+Count_by_tag: Final = """
     SELECT count(*) FROM tag, entry
     WHERE tag.name=:name and tag.entry_id=entry.id
     ORDER BY entry.published;
     """
 
-Search_entry_content: Final[
-    str
-] = """
+Search_entry_content: Final = """
     SELECT * FROM entry WHERE content LIKE :content
     ORDER BY published DESC LIMIT :limit;
     """
-Count_entry_content: Final[
-    str
-] = """
+Count_entry_content: Final = """
     SELECT count(*) FROM entry WHERE content LIKE :content
     ORDER BY published;
     """
 
-Get_by_tag_bucket: Final[
-    str
-] = """
+Get_by_tag_bucket: Final = """
     SELECT id, content, link, published, feed_id, feed_name, bucket
     FROM tag, entry
     WHERE bucket=:bucket and tag.name=:name and tag.entry_id=entry.id
     ORDER BY entry.published DESC LIMIT :limit;
     """
-Count_by_tag_bucket: Final[
-    str
-] = """
+Count_by_tag_bucket: Final = """
     SELECT count(*) FROM tag, entry
     WHERE bucket=:bucket and tag.name=:name and tag.entry_id=entry.id
     ORDER BY entry.published;
     """
 
-Search_entry_content_bucket: Final[
-    str
-] = """
+Search_entry_content_bucket: Final = """
     SELECT * FROM entry WHERE bucket=:bucket and content LIKE :content
     ORDER BY published DESC LIMIT :limit;
     """
-Count_entry_content_bucket: Final[
-    str
-] = """
+Count_entry_content_bucket: Final = """
     SELECT count(*) FROM entry WHERE bucket=:bucket and content LIKE :content
     ORDER BY published;
     """
 
-Get_all_tags: Final[
-    str
-] = """
+Get_all_tags: Final = """
     SELECT name FROM tag GROUP BY name;
     """
-Get_one_tag: Final[
-    str
-] = """
+Get_one_tag: Final = """
     SELECT name FROM tag WHERE name LIKE ?
     GROUP BY name;
     """
 
-Get_feed_by_id: Final[
-    str
-] = """
+Get_feed_by_id: Final = """
     SELECT * FROM feed WHERE id=?;
     """
 
-Delete_feed: Final[
-    str
-] = """
+Delete_feed: Final = """
     DELETE FROM feed WHERE id=?;
     """
 
-Update_feed_id: Final[
-    str
-] = """
+Update_feed_id: Final = """
     UPDATE feed SET id=:newid WHERE id=:oldid;
     """
 
-Update_entry_feed_id: Final[
-    str
-] = """
+Update_entry_feed_id: Final = """
     UPDATE entry SET feed_id=:newid WHERE feed_id=:oldid;
     """
-Update_feed_title: Final[
-    str
-] = """
+Update_feed_title: Final = """
     UPDATE feed SET title=:title WHERE id=:id;
     """
 
-Update_entry_feed_name: Final[
-    str
-] = """
+Update_entry_feed_name: Final = """
     UPDATE entry SET feed_name=:feed_name WHERE feed_id=:feed_id;
     """
 
-Get_feed_id: Final[
-    str
-] = """
+Get_feed_id: Final = """
     SELECT id FROM feed WHERE id=?;
     """
 
-Get_feed_link: Final[
-    str
-] = """
+Get_feed_link: Final = """
     SELECT feed_link FROM feed WHERE feed_link=?;
     """
 
-Insert_feed: Final[
-    str
-] = """
+Insert_feed: Final = """
     INSERT INTO feed (
         id, feed_link, website, title, author_name, updated, notes, parser
     ) VALUES (
@@ -187,69 +145,47 @@ Insert_feed: Final[
     );
     """
 
-Insert_my_feed: Final[
-    str
-] = """
+Insert_my_feed: Final = """
     INSERT INTO feed (
         id, feed_link, website, title, author_name, updated, notes, parser
     ) VALUES (:id, :feed_link, "", :title, '', '', '', '');
     """
 
-Update_feed_parser: Final[
-    str
-] = """
+Update_feed_parser: Final = """
     UPDATE feed SET parser=:parser WHERE id=:id;
     """
 
-Update_feed_updated: Final[
-    str
-] = """
+Update_feed_updated: Final = """
     UPDATE feed SET updated=:updated WHERE id=:id;
     """
 
-Update_my_feed_info: Final[
-    str
-] = """
+Update_my_feed_info: Final = """
     UPDATE feed SET feed_link=:feed_link, website=:website, title=:title, author_name=:author
     WHERE id='Public';
     """
-Update_my_feed_link: Final[
-    str
-] = """
+Update_my_feed_link: Final = """
     UPDATE feed SET feed_link=? WHERE id='Public';
     """
-Update_my_feed_website: Final[
-    str
-] = """
+Update_my_feed_website: Final = """
     UPDATE feed SET website=? WHERE id='Public';
     """
-Update_my_feed_title: Final[
-    str
-] = """
+Update_my_feed_title: Final = """
     UPDATE feed SET title=? WHERE id='Public';
     """
-Update_my_feed_author: Final[
-    str
-] = """
+Update_my_feed_author: Final = """
     UPDATE feed SET author_name=? WHERE id='Public';
     """
 
-Get_subs_list: Final[
-    str
-] = """
+Get_subs_list: Final = """
     SELECT * FROM feed WHERE id<>'Public' and id<>'Private' and id<>'Fav'
     ORDER BY id;
     """
-Get_feeds_by_title: Final[
-    str
-] = """
+Get_feeds_by_title: Final = """
     SELECT * FROM feed WHERE id<>'Public' and id<>'Private' and id<>'Fav'
     and title LIKE ? ORDER BY id;
     """
 
-Insert_entry: Final[
-    str
-] = """
+Insert_entry: Final = """
     INSERT INTO entry (
         id, content, link, published, feed_id, feed_name, bucket
     ) VALUES (
@@ -257,9 +193,7 @@ Insert_entry: Final[
     );
     """
 
-Insert_my_entry: Final[
-    str
-] = """
+Insert_my_entry: Final = """
     INSERT INTO entry (
         id, content, link, published, feed_id, feed_name, bucket
     ) VALUES (
@@ -268,147 +202,105 @@ Insert_my_entry: Final[
     """
 
 # first 是指按照消息发布时间最新的信息。
-Get_my_first_entry: Final[
-    str
-] = """
+Get_my_first_entry: Final = """
     SELECT * FROM entry WHERE bucket='Public' or bucket='Private'
     ORDER BY published DESC LIMIT 1;
     """
 
-Get_my_next_entry: Final[
-    str
-] = """
+Get_my_next_entry: Final = """
     SELECT * FROM entry
     WHERE (bucket='Public' or bucket='Private') and published < :published
     ORDER BY published DESC LIMIT 1;
     """
 
-My_cursor_goto: Final[
-    str
-] = """
+My_cursor_goto: Final = """
     SELECT * FROM entry
     WHERE (bucket='Public' or bucket='Private') and published > :published
     ORDER BY published LIMIT 1;
     """
-News_cursor_goto: Final[
-    str
-] = """
+News_cursor_goto: Final = """
     SELECT * FROM entry
     WHERE bucket='News' and published > :published
     ORDER BY published LIMIT 1;
     """
 
-Get_entries_limit: Final[
-    str
-] = """
+Get_entries_limit: Final = """
     SELECT * FROM entry WHERE bucket=:bucket
     ORDER BY published DESC LIMIT :limit;
     """
 
-Get_news_next_entry: Final[
-    str
-] = """
+Get_news_next_entry: Final = """
     SELECT * FROM entry
     WHERE bucket='News' and published < :published
     ORDER BY published DESC LIMIT 1;
     """
 
-Get_entry_by_id: Final[
-    str
-] = """
+Get_entry_by_id: Final = """
     SELECT * FROM entry WHERE id=?;
     """
 
-Get_entry_by_id_prefix: Final[
-    str
-] = """
+Get_entry_by_id_prefix: Final = """
     SELECT * FROM entry WHERE id LIKE ?;
     """
-Get_entry_in_bucket: Final[
-    str
-] = """
+Get_entry_in_bucket: Final = """
     SELECT * FROM entry WHERE bucket=:bucket and id LIKE :id;
     """
 
-Count_by_feed_id: Final[
-    str
-] = """
+Count_by_feed_id: Final = """
     SELECT count(*) FROM entry WHERE feed_id=?;
     """
 
-Get_public_limit: Final[
-    str
-] = """
+Get_public_limit: Final = """
     SELECT * FROM entry
     WHERE bucket='Public' and published > :published
     ORDER BY published LIMIT :limit;
     """
 
-Get_by_date: Final[
-    str
-] = """
+Get_by_date: Final = """
     SELECT * FROM entry
     WHERE bucket=:bucket and published LIKE :published
     ORDER BY published DESC LIMIT :limit;
     """
 
-Get_by_date_my_buckets: Final[
-    str
-] = """
+Get_by_date_my_buckets: Final = """
     SELECT * FROM entry
     WHERE (bucket='Public' or bucket='Private') and published LIKE :published
     ORDER BY published DESC LIMIT :limit;
     """
 
-Count_by_date: Final[
-    str
-] = """
+Count_by_date: Final = """
     SELECT count(*) FROM entry
     WHERE bucket=:bucket and published LIKE :published
     ORDER BY published DESC;
     """
 
-Move_entry_to_fav: Final[
-    str
-] = """
+Move_entry_to_fav: Final = """
     UPDATE entry SET
     id=:newid, feed_id='Fav', bucket='Fav'
     WHERE id=:oldid;
     """
 
-Update_entry_bucket: Final[
-    str
-] = """
+Update_entry_bucket: Final = """
     UPDATE entry SET feed_id=:feed_id, bucket=:bucket WHERE id=:id;
     """
 
-Count_tag_by_entry_id: Final[
-    str
-] = """
+Count_tag_by_entry_id: Final = """
     SELECT count(*) FROM tag WHERE entry_id=?;
     """
 
-Delete_tag_entry: Final[
-    str
-] = """
+Delete_tag_entry: Final = """
     DELETE FROM tag WHERE entry_id=?;
     """
 
-Delete_entry: Final[
-    str
-] = """
+Delete_entry: Final = """
     DELETE FROM entry WHERE id=?;
     """
 
-Delete_entries: Final[
-    str
-] = """
+Delete_entries: Final = """
     DELETE FROM entry WHERE feed_id=?;
     """
 
-Get_news_by_feed: Final[
-    str
-] = """
+Get_news_by_feed: Final = """
     SELECT * FROM entry WHERE feed_id=:feed_id
     ORDER BY published DESC LIMIT :limit;
     """

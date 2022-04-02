@@ -2,12 +2,12 @@ from typing import Any, cast
 import click
 import pyperclip
 from result import Err, Ok, Result
-from ipelago import stmt
-from ipelago import db
-from ipelago.gui import tk_my_feed_info, tk_post_msg
-from ipelago.model import AppConfig, Bucket, my_bucket
-from ipelago.publish import check_before_publish, publish_html_rss, publish_show_info
-from ipelago import util
+from . import stmt
+from . import db
+from .gui import tk_my_feed_info, tk_post_msg
+from .model import AppConfig, Bucket, my_bucket
+from .publish import check_before_publish, publish_html_rss, publish_show_info
+from . import util
 from . import (
     __version__,
     __package_name__,
