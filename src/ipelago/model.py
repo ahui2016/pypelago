@@ -180,7 +180,7 @@ def utf8_byte_truncate(text: str, max_bytes: int) -> str:
     found and truncate before that character."""
     utf8 = text.encode("utf8")
     if len(utf8) <= max_bytes:
-        return utf8.decode("utf8")
+        return text
     i = max_bytes
     while i > 0 and not utf8_lead_byte(utf8[i]):
         i -= 1

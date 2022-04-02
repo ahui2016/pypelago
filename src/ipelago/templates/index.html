@@ -14,14 +14,17 @@
   <body>
     {% if links.prev_page.href|length %}
     <h1><a href="{{ links.index_page.href }}">{{ feed.title }}</a></h1>
+    <div class="FeedInfo">
+      <span>Author: {{ feed.author_name }}</span>
+    </div>
     {% else %}
     <h1><a href="{{ feed.website }}">{{ feed.title }}</a></h1>
-    {% endif %}
     <div class="FeedInfo">
       <span>Author: {{ feed.author_name }}</span>
       <br />
       <span>Updated at: {{ feed.updated }}</span>
     </div>
+    {% endif %}
 
     <div class="MsgList">
       {% for item in entries|reverse %}
