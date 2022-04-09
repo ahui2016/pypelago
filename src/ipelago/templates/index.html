@@ -22,7 +22,7 @@
     <div class="FeedInfo">
       <span>Author: {{ feed.author_name }}</span>
       <br />
-      <span>Updated at: {{ feed.updated }}</span>
+      <span>Updated at: {{ feed.updated[:10] }}</span>
     </div>
     {% endif %}
 

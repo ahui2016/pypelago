@@ -121,7 +121,6 @@ def publish_html_rss(
         return
 
     feed = get_feed_by_id(PublicBucketID, conn).unwrap()
-    feed.updated = arrow.now().format(RFC3339)[:10]
     publish_html(conn, feed, limit, tmpl_folder, dst_dir)
     publish_rss(conn, feed, tmpl_folder, dst_dir)
 

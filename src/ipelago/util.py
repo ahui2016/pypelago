@@ -200,6 +200,7 @@ def post_msg(msg: str, bucket: Bucket) -> None:
                 tags = extract_tags(msg)
                 if tags:
                     insert_tags(tags, entry.entry_id, conn)
+                db.update_my_feed_date(conn)
 
 
 def retrieve_feed(feed_url: str, conn: Conn) -> Result[FeedParserDict, str]:

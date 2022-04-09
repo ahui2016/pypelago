@@ -461,6 +461,12 @@ def update_my_feed_info(
         {"feed_link": feed_link, "website": website, "title": title, "author": author},
     )
 
+def update_my_feed_date(conn: Conn) -> None:
+    now = arrow.now().format(RFC3339)
+    connExec(
+        conn, stmt.Update_feed_updated, {"updated": now, "id": PublicBucketID}
+    ).unwrap()
+
 
 def insert_tags(names: list[str], entry_id: str, conn: Conn) -> Result[int, str]:
     pairs = [{"name": name, "entry_id": entry_id} for name in names]
