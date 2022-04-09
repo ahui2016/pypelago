@@ -516,14 +516,10 @@ def count_entry_content(keyword: str, bucket: str, conn: Conn) -> list[FeedEntry
 
 
 def get_all_tags(conn: Conn) -> list[str]:
-    tags = []
-    for row in conn.execute(stmt.Get_all_tags):
-        tags.append("#" + row[0])
-    return tags
+    rows = conn.execute(stmt.Get_all_tags)
+    return ["#" + row[0] for row in rows]
 
 
 def get_tags_by_name(name: str, conn: Conn) -> list[str]:
-    tags = []
-    for row in conn.execute(stmt.Get_one_tag, ("%" + name + "%",)):
-        tags.append("#" + row[0])
-    return tags
+    rows = conn.execute(stmt.Get_one_tag, ("%" + name + "%",))
+    return ["#" + row[0] for row in rows]

@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS tag
 
 CREATE INDEX IF NOT EXISTS idx_tag_name ON tag(name);
 CREATE INDEX IF NOT EXISTS idx_tag_entry_id ON tag(entry_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tag_entry_name_id ON tag(name, entry_id);
 """
 
 Insert_metadata: Final = "INSERT INTO metadata (name, value) VALUES (?, ?);"
