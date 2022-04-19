@@ -278,7 +278,7 @@ ago post "abc #cde efg"
 
 ### 特殊的订阅方法
 
-我遇到了一些 rss feed 受到 Cloudflare 的保护而无法通过 python requests 访问，但可以用浏览器直接访问，比如这个 https://mstdn.jp/@nekodayo.rss
+我遇到了一些 rss feed 受到 Cloudflare 的保护而无法通过 python requests 访问，但可以用浏览器直接访问，比如这个 <https://mstdn.jp/@nekodayo.rss>
 
 对于这种情况，可以用浏览器访问，按 Ctrl+S 保存 rss 到本地，建议保存到一个固定的文件夹，比如我保存在 D:\rss_feeds 里。
 
@@ -319,6 +319,10 @@ $ ago -i/--info
 
 
 ## 更新日志
+
+### v0.0.4
+
+- **fix** 在订阅某个博客时 (<https://blog.gimo.me/index.xml>) 发现了 `<a>` 链接的文字描述里含有 `<svg>` 并因此导致提取纯文本后产生多个换行符的问题，已修复。
 
 ### v0.0.3
 

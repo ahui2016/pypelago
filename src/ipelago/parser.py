@@ -42,14 +42,17 @@ def PubDateToRFC3339(pubdate: str) -> str:
 def get_text_from_soup(soup, sep: str = "\n") -> str:
     contents = []
     for child in soup.contents:
-        if child.name in ["p", "div"]:
+        if child.name == "p":
             contents.append("\n")
+
+        if child.name in ["p", "div"]:
             contents.append(get_text_from_soup(child, " "))
         elif child.name == "a":
-            if child.text == child.get("href"):
-                contents.append(child.text)
+            link_text = child.text.replace("\n", "")
+            if link_text == child.get("href"):
+                contents.append(link_text)
             else:
-                contents.append(f'[{child.text}]({child.get("href")})')
+                contents.append(f'[{link_text}]({child.get("href")})')
         elif child.name == "img":
             contents.append(f'![{child.get("alt")}]({child.get("src")})')
         else:
