@@ -25,6 +25,7 @@ def PubDateToRFC3339(pubdate: str) -> str:
 
     date_formats = [
         "DD MMM YYYY HH:mm:ss Z",
+        "D MMM YYYY HH:mm:ss Z",
     ]
     for date_format in date_formats:
         try:

@@ -320,6 +320,11 @@ $ ago -i/--info
 
 ## 更新日志
 
+### v0.0.5
+
+- **fix** 修复了订阅 news.ycombinator.com/rss 时解析日期格式失败的问题。
+- **fix** 修复了 'ago search -feeds' 无结果时提示消息的一个小 bug。
+
 ### v0.0.4
 
 - **fix** 在订阅某个博客时 (<https://blog.gimo.me/index.xml>) 发现了 `<a>` 链接的文字描述里含有 `<svg>` 并因此导致提取纯文本后产生多个换行符的问题，已修复。

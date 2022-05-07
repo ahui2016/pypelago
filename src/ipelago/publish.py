@@ -3,7 +3,6 @@ from pathlib import Path
 import shutil
 import sqlite3
 from typing import Final, TypedDict
-import arrow
 import jinja2
 from result import Result, Err
 from ipelago import stmt
@@ -11,7 +10,6 @@ from ipelago import stmt
 from ipelago.db import get_feed_by_id, get_public_limit, get_recent_entries
 from ipelago.model import (
     OK,
-    RFC3339,
     Bucket,
     Feed,
     FeedEntry,

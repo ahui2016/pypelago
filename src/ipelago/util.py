@@ -288,7 +288,7 @@ def print_subs_list(conn: Conn, feed_id: str = "") -> None:
 def print_feeds_by_title(conn: Conn, title: str) -> None:
     feeds = db.get_feeds_by_title(conn, title)
     if not feeds:
-        print("Not Found: {title}")
+        print(f"Not Found: {title}")
         return
     print()
     for feed in feeds:
