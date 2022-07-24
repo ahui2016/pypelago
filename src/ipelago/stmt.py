@@ -271,8 +271,11 @@ Get_by_date_my_buckets: Final = """
 
 Count_by_date: Final = """
     SELECT count(*) FROM entry
-    WHERE bucket=:bucket and published LIKE :published
-    ORDER BY published DESC;
+    WHERE bucket=:bucket and published LIKE :published;
+    """
+
+Count_all_entries: Final = """
+    SELECT count(*) FROM entry WHERE bucket=?;
     """
 
 Move_entry_to_fav: Final = """

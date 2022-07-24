@@ -104,7 +104,9 @@ $ conda activate py310
 - `ago tl -date 2022-03-15` (阅读 2022年3月15日 的消息, 默认上限 9 条)
 - `ago tl -date 2022-03` (阅读 2022年3月 的消息, 默认上限 9 条)
 - `ago tl -date 2022 -pri -limit 20` (阅读 2022年 的隐私消息, 最多只显示上限 20 条)
-- `ago tl -count 2022-03` 统计 2022年3月 的消息条数
+- `ago tl -count 2022-03` (统计 2022年3月 的消息条数)
+- `ago tl -count all` (统计全部消息条数，包括公开与隐私，不包括收藏)
+- `ago tl -count all -pub` (统计公开消息的条数)
 
 
 ## 订阅 RSS
@@ -315,10 +317,14 @@ $ ago -i/--info
 
 我用这个程序生成的微博客，采用自带的极简模板（我实在不擅长前端，但懂前端的人可以看上面 "自定义模板" 的章节，很容易修改）。
 
-[blog.ai42.xyz/i/](https://blog.ai42.xyz/i/)
+[blog.ai42.cc/i/](https://blog.ai42.cc/i/)
 
 
 ## 更新日志
+
+### v0.0.6
+
+- **feature** 新增了 `ago tl -count all -pub` 统计公开消息的条数，方便使用 `ago publish` 命令时决定每页显示多少条消息。
 
 ### v0.0.5
 

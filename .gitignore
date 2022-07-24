@@ -2,3 +2,4 @@
 src/ipelago/__pycache__
 public
 dist
+.idea

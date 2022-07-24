@@ -207,13 +207,23 @@ def get_by_date_my_buckets(date: str, limit: int, conn: Conn) -> list[FeedEntry]
     return result
 
 
-def conut_by_date_buckets(date: str, buckets: list[str], conn: Conn) -> int:
+def count_by_date_buckets(date: str, buckets: list[str], conn: Conn) -> int:
     total = 0
     for bucket in buckets:
         row = conn.execute(
             stmt.Count_by_date,
             {"bucket": bucket, "published": date + "%"},
         ).fetchone()
+        if row:
+            total += row[0]
+
+    return total
+
+
+def count_all_entries(buckets: list[str], conn: Conn) -> int:
+    total = 0
+    for bucket in buckets:
+        row = conn.execute(stmt.Count_all_entries, (bucket,)).fetchone()
         if row:
             total += row[0]
 

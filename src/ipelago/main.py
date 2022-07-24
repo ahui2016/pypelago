@@ -273,7 +273,7 @@ def delete(ctx: click.Context, entry_id: str):
     help="Read yesterday's messages.",
 )
 @click.option("date_prefix", "-date", help="Read messages of a date.")
-@click.option("count", "-count", help="Count messages of a date.")
+@click.option("count", "-count", help="Count messages.")
 @click.option(
     "pub", "-pub", "--public", is_flag=True, help="Read my public messages only."
 )

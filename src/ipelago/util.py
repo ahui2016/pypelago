@@ -159,7 +159,10 @@ def print_my_entries(prefix: str, limit: int, buckets: list[str], conn: Conn) ->
 def count_my_entries(prefix: str, buckets: list[str], conn: Conn, verbose:bool=True) -> int:
     if not buckets:
         buckets = [Bucket.Public.name, Bucket.Private.name]
-    n = db.conut_by_date_buckets(prefix, buckets, conn)
+    if prefix.upper() == "ALL":
+        n = db.count_all_entries(buckets, conn)
+    else:
+        n = db.count_by_date_buckets(prefix, buckets, conn)
     if verbose:
         print(f"[{prefix}]: {n} message(s)")
     return n
